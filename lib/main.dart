@@ -97,6 +97,14 @@ class _AppState extends State<App> {
       await pc.addCandidate(candidate).catchError((e) {/* ignore */});
     });
 
+    socket.on("offer-rejected", (data) {
+      print("ws: received event: offer-rejected");
+      setState(() {
+        callState = CallState.idle;
+      });
+      disposeCall();
+    });
+
     socket.on("disconnect-call", (data) async {
       print("ws: received event: disconnect-call");
 
@@ -114,13 +122,6 @@ class _AppState extends State<App> {
           callState = CallState.idle;
         });
       }
-      disposeCall();
-    });
-
-    socket.on("offer/timeout", (data) {
-      setState(() {
-        callState = CallState.idle;
-      });
       disposeCall();
     });
 
@@ -167,10 +168,6 @@ class _AppState extends State<App> {
   }
 
   void onCallPressed() async {
-    setState(() {
-      remoteId = int.parse(remoteIdController.text);
-      callState = CallState.outgoing;
-    });
     await initializeLocalStream();
     final pc = await PeerConnection().pc;
     initializePeerConnection(pc);
@@ -195,6 +192,10 @@ class _AppState extends State<App> {
         callState = CallState.idle;
       });
       disposeCall();
+    });
+    setState(() {
+      remoteId = int.parse(remoteIdController.text);
+      callState = CallState.outgoing;
     });
   }
 
@@ -247,6 +248,7 @@ class _AppState extends State<App> {
   }
 
   void endOutgoingCall() {
+    print("ws: sending event: end-offer");
     final socket = SocketConnection().socket;
     socket.emit('end-offer');
     setState(() {
@@ -264,6 +266,15 @@ class _AppState extends State<App> {
     setState(() {
       localStream = null;
     });
+  }
+
+  void rejectIncomingCall() {
+    final socket = SocketConnection().socket;
+    socket.emit('reject-offer');
+    setState(() {
+      callState = CallState.idle;
+    });
+    disposeCall();
   }
 
   @override
@@ -417,7 +428,7 @@ class _AppState extends State<App> {
                             color: Colors.red,
                             child: IconButton(
                               color: Colors.white,
-                              onPressed: endCall,
+                              onPressed: rejectIncomingCall,
                               icon: const Icon(Icons.call_end),
                             ),
                           ),
