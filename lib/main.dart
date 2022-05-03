@@ -16,9 +16,9 @@ class App extends StatefulWidget {
   State<App> createState() => _AppState();
 }
 
-enum CallStatus {
+enum CallState {
   idle,
-  calling,
+  outgoing,
   incoming,
   connected,
 }
@@ -30,7 +30,7 @@ class _AppState extends State<App> {
 
   int? remoteId;
 
-  CallStatus callStatus = CallStatus.idle;
+  CallState callState = CallState.idle;
   RTCSessionDescription? remoteDescription;
 
   RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
@@ -59,10 +59,10 @@ class _AppState extends State<App> {
     socket.on("offer", (data) async {
       print("ws: received event: offer");
       setState(() {
-        callStatus = CallStatus.incoming;
+        callState = CallState.incoming;
         remoteId = data['remoteId'];
 
-        final signal = data['data'];
+        final signal = data['signal'];
         remoteDescription = RTCSessionDescription(
           signal['sdp'],
           signal['type'],
@@ -73,7 +73,7 @@ class _AppState extends State<App> {
     socket.on("answer", (data) async {
       print("ws: received event: answer");
 
-      final signal = data['data'];
+      final signal = data['signal'];
       final answer = RTCSessionDescription(
         signal['sdp'],
         signal['type'],
@@ -81,13 +81,13 @@ class _AppState extends State<App> {
       final pc = await PeerConnection().pc;
       await pc.setRemoteDescription(answer);
       setState(() {
-        callStatus = CallStatus.connected;
+        callState = CallState.connected;
       });
     });
 
     socket.on("ice-candidate", (data) async {
       print("received ice-candidate");
-      final signal = data['data'];
+      final signal = data['candidate'];
       final candidate = RTCIceCandidate(
         signal['candidate'],
         signal['sdpMid'],
@@ -100,18 +100,18 @@ class _AppState extends State<App> {
     socket.on("disconnect-call", (data) async {
       print("ws: received event: disconnect-call");
 
-      if (callStatus == CallStatus.calling) {
+      if (callState == CallState.outgoing) {
         setState(() {
           callEvent = 'Call Rejected';
         });
         await Future.delayed(const Duration(seconds: 1));
         setState(() {
           callEvent = '';
-          callStatus = CallStatus.idle;
+          callState = CallState.idle;
         });
       } else {
         setState(() {
-          callStatus = CallStatus.idle;
+          callState = CallState.idle;
         });
       }
       disposeCall();
@@ -119,14 +119,14 @@ class _AppState extends State<App> {
 
     socket.on("offer/timeout", (data) {
       setState(() {
-        callStatus = CallStatus.idle;
+        callState = CallState.idle;
       });
       disposeCall();
     });
 
     socket.on("offer-ended", (data) {
       setState(() {
-        callStatus = CallStatus.idle;
+        callState = CallState.idle;
       });
       disposeCall();
     });
@@ -137,8 +137,7 @@ class _AppState extends State<App> {
       print("sending ice-candidate");
       final socket = SocketConnection().socket;
       socket.emit('ice-candidate', {
-        'remoteId': remoteId,
-        'data': candidate.toMap(),
+        'candidate': candidate.toMap(),
       });
     };
 
@@ -147,7 +146,7 @@ class _AppState extends State<App> {
         remoteRenderer.srcObject = event.streams[0];
       }
       setState(() {
-        callStatus = CallStatus.connected;
+        callState = CallState.connected;
       });
     };
 
@@ -170,7 +169,7 @@ class _AppState extends State<App> {
   void onCallPressed() async {
     setState(() {
       remoteId = int.parse(remoteIdController.text);
-      callStatus = CallStatus.calling;
+      callState = CallState.outgoing;
     });
     await initializeLocalStream();
     final pc = await PeerConnection().pc;
@@ -186,13 +185,14 @@ class _AppState extends State<App> {
     print('ws: sending event: offer');
     socket.emitWithAck("offer", {
       'remoteId': remoteIdController.text,
-      'data': offer.toMap(),
+      'signal': offer.toMap(),
     }, ack: (data) async {
       if (data['error'] == null) return;
 
       // Call failed
+      print("call failed: ${data['error']['code']}");
       setState(() {
-        callStatus = CallStatus.idle;
+        callState = CallState.idle;
       });
       disposeCall();
     });
@@ -221,9 +221,17 @@ class _AppState extends State<App> {
 
     final socket = SocketConnection().socket;
     print("sending answer");
-    socket.emit('answer', {
-      'remoteId': remoteId,
-      'data': answer.toMap(),
+    socket.emitWithAck('answer', {
+      'signal': answer.toMap(),
+    }, ack: (data) {
+      if (data['error'] == null) return;
+
+      // Call failed
+      print("amswer failed: ${data['error']['code']}");
+      setState(() {
+        callState = CallState.idle;
+      });
+      disposeCall();
     });
   }
 
@@ -233,7 +241,7 @@ class _AppState extends State<App> {
       'remoteId': remoteId,
     });
     setState(() {
-      callStatus = CallStatus.idle;
+      callState = CallState.idle;
     });
     // disposeCall();
   }
@@ -242,7 +250,7 @@ class _AppState extends State<App> {
     final socket = SocketConnection().socket;
     socket.emit('end-offer');
     setState(() {
-      callStatus = CallStatus.idle;
+      callState = CallState.idle;
     });
     disposeCall();
   }
@@ -265,8 +273,8 @@ class _AppState extends State<App> {
       home: Scaffold(
         body: Center(child: Builder(
           builder: (context) {
-            switch (callStatus) {
-              case CallStatus.idle:
+            switch (callState) {
+              case CallState.idle:
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -327,7 +335,7 @@ class _AppState extends State<App> {
                   ],
                 );
 
-              case CallStatus.calling:
+              case CallState.outgoing:
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -370,7 +378,7 @@ class _AppState extends State<App> {
                     ),
                   ],
                 );
-              case CallStatus.incoming:
+              case CallState.incoming:
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -431,7 +439,7 @@ class _AppState extends State<App> {
                     ),
                   ],
                 );
-              case CallStatus.connected:
+              case CallState.connected:
                 return Column(
                   children: [
                     Expanded(
