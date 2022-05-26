@@ -1,12 +1,17 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:videofi_mark2/notifiers/chat_notifier.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/socket.dart';
 
 main() {
-  runApp(const App());
+  runApp(const ProviderScope(
+    child: MaterialApp(
+      title: 'Videofi',
+      home: App(),
+    ),
+  ));
 }
 
 class App extends StatefulWidget {
@@ -281,212 +286,245 @@ class _AppState extends State<App> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'VideoFi',
-      home: Scaffold(
-        body: Center(child: Builder(
-          builder: (context) {
-            switch (callState) {
-              case CallState.idle:
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // A green dot
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Your ID",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              localId.toString(),
-                              style: const TextStyle(
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: 160,
-                      height: 50,
-                      child: TextField(
-                        keyboardType: TextInputType.number,
-                        controller: remoteIdController,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Remote ID',
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 160,
-                      child: ElevatedButton(
-                        child: const Text('Call'),
-                        onPressed: onCallPressed,
-                      ),
-                    ),
-                  ],
-                );
+    return Scaffold(
+      body: Center(child: Builder(
+        builder: (context) {
+          switch (callState) {
+            case CallState.idle:
+              return IdleScreen(
+                onCallPressed: onCallPressed,
+              );
 
-              case CallState.outgoing:
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.face,
-                      size: 60,
-                      color: Colors.green,
+            case CallState.outgoing:
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.face,
+                    size: 60,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(
+                    height: 8,
+                  ),
+                  Text(
+                    remoteId.toString(),
+                    style: const TextStyle(
+                      fontSize: 20,
                     ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    Text(
-                      remoteId.toString(),
-                      style: const TextStyle(
-                        fontSize: 20,
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  const Text(
+                    'Calling',
+                  ),
+                  const SizedBox(
+                    height: 4,
+                  ),
+                  Text(callEvent),
+                  const SizedBox(
+                    height: 4,
+                  ),
+                  ClipOval(
+                    child: Container(
+                      color: Colors.red,
+                      child: IconButton(
+                        color: Colors.white,
+                        onPressed: endOutgoingCall,
+                        icon: const Icon(Icons.call_end),
                       ),
                     ),
-                    const SizedBox(
-                      height: 20,
+                  ),
+                ],
+              );
+            case CallState.incoming:
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.face,
+                    size: 60,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(
+                    height: 8,
+                  ),
+                  Text(
+                    remoteId.toString(),
+                    style: const TextStyle(
+                      fontSize: 20,
                     ),
-                    const Text(
-                      'Calling',
-                    ),
-                    const SizedBox(
-                      height: 4,
-                    ),
-                    Text(callEvent),
-                    const SizedBox(
-                      height: 4,
-                    ),
-                    ClipOval(
-                      child: Container(
-                        color: Colors.red,
-                        child: IconButton(
-                          color: Colors.white,
-                          onPressed: endOutgoingCall,
-                          icon: const Icon(Icons.call_end),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              case CallState.incoming:
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.face,
-                      size: 60,
-                      color: Colors.green,
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    Text(
-                      remoteId.toString(),
-                      style: const TextStyle(
-                        fontSize: 20,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    const Text(
-                      'Incoming',
-                    ),
-                    const SizedBox(
-                      height: 4,
-                    ),
-                    Text(callEvent),
-                    const SizedBox(
-                      height: 4,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ClipOval(
-                          child: Container(
-                            color: Colors.red,
-                            child: IconButton(
-                              color: Colors.white,
-                              onPressed: rejectIncomingCall,
-                              icon: const Icon(Icons.call_end),
-                            ),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  const Text(
+                    'Incoming',
+                  ),
+                  const SizedBox(
+                    height: 4,
+                  ),
+                  Text(callEvent),
+                  const SizedBox(
+                    height: 4,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ClipOval(
+                        child: Container(
+                          color: Colors.red,
+                          child: IconButton(
+                            color: Colors.white,
+                            onPressed: rejectIncomingCall,
+                            icon: const Icon(Icons.call_end),
                           ),
                         ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        ClipOval(
-                          child: Container(
-                            color: Colors.lightGreen,
-                            child: IconButton(
-                              color: Colors.white,
-                              onPressed: onAnswerPressed,
-                              icon: const Icon(Icons.call),
-                            ),
+                      ),
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      ClipOval(
+                        child: Container(
+                          color: Colors.lightGreen,
+                          child: IconButton(
+                            color: Colors.white,
+                            onPressed: onAnswerPressed,
+                            icon: const Icon(Icons.call),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                );
-              case CallState.connected:
-                return Column(
-                  children: [
-                    Expanded(
-                      child: Stack(children: [
-                        Expanded(child: RTCVideoView(remoteRenderer)),
-                        SizedBox(
-                          width: 200,
-                          child: Expanded(child: RTCVideoView(localRenderer)),
-                        ),
-                      ]),
-                    ),
-                    Row(
-                      children: [
-                        TextButton(
-                            onPressed: endCall, child: const Text("Hang up")),
-                        TextButton(
-                            onPressed: () {
-                              Helper.setMicrophoneMute(
-                                  !isMuted,
-                                  localStream?.getAudioTracks().first
-                                      as MediaStreamTrack);
-                              setState(() {
-                                isMuted = !isMuted;
-                              });
-                            },
-                            child: Text(isMuted ? "Unmute" : "Mute")),
-                      ],
-                    )
-                  ],
-                );
-            }
-          },
-        )),
-      ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            case CallState.connected:
+              return Column(
+                children: [
+                  Expanded(
+                    child: Stack(children: [
+                      Expanded(child: RTCVideoView(remoteRenderer)),
+                      SizedBox(
+                        width: 200,
+                        child: Expanded(child: RTCVideoView(localRenderer)),
+                      ),
+                    ]),
+                  ),
+                  Row(
+                    children: [
+                      TextButton(
+                          onPressed: endCall, child: const Text("Hang up")),
+                      TextButton(
+                          onPressed: () {
+                            Helper.setMicrophoneMute(
+                                !isMuted,
+                                localStream?.getAudioTracks().first
+                                    as MediaStreamTrack);
+                            setState(() {
+                              isMuted = !isMuted;
+                            });
+                          },
+                          child: Text(isMuted ? "Unmute" : "Mute")),
+                    ],
+                  )
+                ],
+              );
+          }
+        },
+      )),
+    );
+  }
+}
+
+class IdleScreen extends ConsumerStatefulWidget {
+  final Function() onCallPressed;
+  const IdleScreen({Key? key, required this.onCallPressed}) : super(key: key);
+
+  @override
+  _IdleScreenState createState() => _IdleScreenState();
+}
+
+class _IdleScreenState extends ConsumerState<IdleScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final socket = SocketConnection().socket;
+    final setLocalId = ref.read(chatProvider.notifier).setLocalId;
+
+    socket.on('connect', (_) {
+      print("connected to ws server");
+      socket.emit('get-id');
+    });
+    socket.on('get-id/callback', (id) {
+      setState(() {
+        setLocalId(id);
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final localId = ref.read(chatProvider).localId;
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // A green dot
+            Container(
+              width: 20,
+              height: 20,
+              decoration: const BoxDecoration(
+                color: Colors.green,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Your ID",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  localId.toString(),
+                  style: const TextStyle(
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            )
+          ],
+        ),
+        const SizedBox(height: 16),
+        const SizedBox(
+          width: 160,
+          height: 50,
+          child: TextField(
+            keyboardType: TextInputType.number,
+            controller: null,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Remote ID',
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 160,
+          child: ElevatedButton(
+            child: const Text('Call'),
+            onPressed: widget.onCallPressed,
+          ),
+        ),
+      ],
     );
   }
 }
