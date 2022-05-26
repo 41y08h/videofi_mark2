@@ -6,10 +6,13 @@ import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/socket.dart';
 
 main() {
-  runApp(const ProviderScope(
+  runApp(ProviderScope(
     child: MaterialApp(
       title: 'Videofi',
-      home: App(),
+      initialRoute: 'idle',
+      routes: {
+        'idle': (context) => const IdleScreen(),
+      },
     ),
   ));
 }
@@ -284,9 +287,7 @@ class _AppState extends State<App> {
         builder: (context) {
           switch (callState) {
             case CallState.idle:
-              return IdleScreen(
-                onCallPressed: onCallPressed,
-              );
+              return const IdleScreen();
 
             case CallState.outgoing:
               return Column(
@@ -431,8 +432,9 @@ class _AppState extends State<App> {
 }
 
 class IdleScreen extends ConsumerStatefulWidget {
-  final Function() onCallPressed;
-  const IdleScreen({Key? key, required this.onCallPressed}) : super(key: key);
+  const IdleScreen({
+    Key? key,
+  }) : super(key: key);
 
   @override
   _IdleScreenState createState() => _IdleScreenState();
@@ -530,66 +532,68 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localId = ref.read(chatProvider).localId;
+    final localId = ref.watch(chatProvider).localId;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // A green dot
-            Container(
-              width: 20,
-              height: 20,
-              decoration: const BoxDecoration(
-                color: Colors.green,
-                shape: BoxShape.circle,
+    return Scaffold(
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // A green dot
+              Container(
+                width: 20,
+                height: 20,
+                decoration: const BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Your ID",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    localId.toString(),
+                    style: const TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              )
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: 160,
+            height: 50,
+            child: TextField(
+              keyboardType: TextInputType.number,
+              controller: remoteIdController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Remote ID',
               ),
             ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Your ID",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  localId.toString(),
-                  style: const TextStyle(
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            )
-          ],
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: 160,
-          height: 50,
-          child: TextField(
-            keyboardType: TextInputType.number,
-            controller: remoteIdController,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Remote ID',
+          ),
+          SizedBox(
+            width: 160,
+            child: ElevatedButton(
+              child: const Text('Call'),
+              onPressed: onCallPressed,
             ),
           ),
-        ),
-        SizedBox(
-          width: 160,
-          child: ElevatedButton(
-            child: const Text('Call'),
-            onPressed: onCallPressed,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
