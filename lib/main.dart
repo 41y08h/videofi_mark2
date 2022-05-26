@@ -112,6 +112,23 @@ class _AppState extends State<App> {
       disposeCall();
     });
 
+    socket.on("outgoing-time-out", (data) {
+      print("outgoing timed out");
+      setState(() {
+        callState = CallState.idle;
+      });
+      disposeCall();
+    });
+
+    socket.on("incoming-time-out", (data) {
+      print("incoming timed out");
+
+      setState(() {
+        callState = CallState.idle;
+      });
+      disposeCall();
+    });
+
     socket.on("call-disconnected", (data) {
       setState(() {
         callState = CallState.idle;
