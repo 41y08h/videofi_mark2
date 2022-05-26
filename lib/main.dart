@@ -21,13 +21,6 @@ class App extends StatefulWidget {
   State<App> createState() => _AppState();
 }
 
-enum CallState {
-  idle,
-  outgoing,
-  incoming,
-  connected,
-}
-
 class _AppState extends State<App> {
   int? localId;
   TextEditingController remoteIdController = TextEditingController();
@@ -446,11 +439,17 @@ class IdleScreen extends ConsumerStatefulWidget {
 }
 
 class _IdleScreenState extends ConsumerState<IdleScreen> {
+  TextEditingController remoteIdController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
+    initialize();
+  }
+
+  void initialize() async {
     final socket = SocketConnection().socket;
-    final setLocalId = ref.read(chatProvider.notifier).setLocalId;
+    final chat = ref.read(chatProvider.notifier);
 
     socket.on('connect', (_) {
       print("connected to ws server");
@@ -458,8 +457,74 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     });
     socket.on('get-id/callback', (id) {
       setState(() {
-        setLocalId(id);
+        chat.state = chat.state.copyWith(
+          localId: id,
+        );
       });
+    });
+
+    final pc = await PeerConnection().pc;
+
+    pc.onIceCandidate = (candidate) async {
+      socket.emit("ice-candidate", {
+        'candidate': candidate.toMap(),
+      });
+    };
+    pc.onTrack = (event) {
+      if (event.track.kind != 'video') return;
+      chat.state = chat.state.copyWith(
+        remoteStream: event.streams.first,
+        callState: CallState.connected,
+      );
+    };
+  }
+
+  void onCallPressed() async {
+    final chat = ref.read(chatProvider.notifier);
+    final socket = SocketConnection().socket;
+    final pc = await PeerConnection().pc;
+    final remoteId = int.parse(remoteIdController.text);
+
+    final localStream = await navigator.mediaDevices.getUserMedia({
+      'audio': true,
+      'video': true,
+    });
+    chat.state = chat.state.copyWith(localStream: localStream);
+
+    localStream.getTracks().forEach((element) {
+      pc.addTrack(element, localStream);
+    });
+
+    final offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    socket.emitWithAck('offer', {
+      'remoteId': remoteId,
+      'signal': offer.toMap(),
+    }, ack: (data) async {
+      if (data['error'] == null) return;
+
+      print('call failed: ${data['error']['code']}');
+
+      PeerConnection().dispose();
+
+      // Dispose local stream
+      chat.state.localStream?.getTracks().forEach((track) {
+        track.stop();
+      });
+      chat.state.localStream?.dispose();
+
+      // Dispose remote stream
+      chat.state.remoteStream?.getTracks().forEach((track) {
+        track.stop();
+      });
+      chat.state.remoteStream?.dispose();
+
+      chat.state = chat.state.copyWith(
+        localStream: null,
+        remoteStream: null,
+        callState: CallState.idle,
+      );
     });
   }
 
@@ -505,13 +570,13 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        const SizedBox(
+        SizedBox(
           width: 160,
           height: 50,
           child: TextField(
             keyboardType: TextInputType.number,
-            controller: null,
-            decoration: InputDecoration(
+            controller: remoteIdController,
+            decoration: const InputDecoration(
               border: OutlineInputBorder(),
               labelText: 'Remote ID',
             ),
@@ -521,7 +586,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
           width: 160,
           child: ElevatedButton(
             child: const Text('Call'),
-            onPressed: widget.onCallPressed,
+            onPressed: onCallPressed,
           ),
         ),
       ],
