@@ -105,27 +105,14 @@ class _AppState extends State<App> {
       disposeCall();
     });
 
-    socket.on("disconnect-call", (data) async {
-      print("ws: received event: disconnect-call");
-
-      if (callState == CallState.outgoing) {
-        setState(() {
-          callEvent = 'Call Rejected';
-        });
-        await Future.delayed(const Duration(seconds: 1));
-        setState(() {
-          callEvent = '';
-          callState = CallState.idle;
-        });
-      } else {
-        setState(() {
-          callState = CallState.idle;
-        });
-      }
+    socket.on("offer-ended", (data) {
+      setState(() {
+        callState = CallState.idle;
+      });
       disposeCall();
     });
 
-    socket.on("offer-ended", (data) {
+    socket.on("call-disconnected", (data) {
       setState(() {
         callState = CallState.idle;
       });
@@ -238,13 +225,11 @@ class _AppState extends State<App> {
 
   void endCall() {
     final socket = SocketConnection().socket;
-    socket.emit('disconnect-call', {
-      'remoteId': remoteId,
-    });
+    socket.emit('disconnect-call');
     setState(() {
       callState = CallState.idle;
     });
-    // disposeCall();
+    disposeCall();
   }
 
   void endOutgoingCall() {
