@@ -15,12 +15,15 @@ class Chat {
   MediaStream? remoteStream;
   CallState callState = CallState.idle;
 
+  RTCSessionDescription? remoteDescription;
+
   Chat({
     this.localId,
     this.localStream,
     this.remoteId,
     this.remoteStream,
     this.callState = CallState.idle,
+    this.remoteDescription,
   });
 
   Chat copyWith({
@@ -29,13 +32,16 @@ class Chat {
     int? remoteId,
     MediaStream? remoteStream,
     CallState callState = CallState.idle,
+    RTCSessionDescription? remoteDescription,
   }) {
     return Chat(
-        localId: localId ?? this.localId,
-        localStream: localStream ?? this.localStream,
-        remoteId: remoteId ?? this.remoteId,
-        remoteStream: remoteStream ?? this.remoteStream,
-        callState: callState);
+      localId: localId ?? this.localId,
+      localStream: localStream ?? this.localStream,
+      remoteId: remoteId ?? this.remoteId,
+      remoteStream: remoteStream ?? this.remoteStream,
+      callState: callState,
+      remoteDescription: remoteDescription ?? this.remoteDescription,
+    );
   }
 }
 

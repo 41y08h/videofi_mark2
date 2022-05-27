@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:videofi_mark2/notifiers/chat_notifier.dart';
 import 'package:videofi_mark2/pc.dart';
+import 'package:videofi_mark2/screens/connected_screen.dart';
 import 'package:videofi_mark2/screens/idle_screen.dart';
 import 'package:videofi_mark2/screens/outgoing_screen.dart';
+import 'package:videofi_mark2/screens/incoming_screen.dart';
 import 'package:videofi_mark2/socket.dart';
 
 main() {
@@ -15,6 +17,8 @@ main() {
       routes: {
         'idle': (context) => const IdleScreen(),
         'outgoing': (context) => const OutgoingScreen(),
+        'incoming': (context) => const IncomingScreen(),
+        'connected': (context) => const ConnectedScreen(),
       },
     ),
   ));

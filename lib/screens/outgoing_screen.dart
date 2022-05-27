@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:videofi_mark2/notifiers/chat_notifier.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/socket.dart';
+import 'package:videofi_mark2/utils/disposeStream.dart';
 
 class OutgoingScreen extends ConsumerStatefulWidget {
   const OutgoingScreen({Key? key}) : super(key: key);
@@ -18,22 +19,22 @@ class _OutgoingScreenState extends ConsumerState<OutgoingScreen> {
     socket.emit('end-offer');
 
     PeerConnection().dispose();
-    // Dispose local stream
-    chat.state.localStream?.getTracks().forEach((track) {
-      track.stop();
-    });
-    chat.state.localStream?.dispose();
+    disposeStream(chat.state.localStream);
 
     chat.state = chat.state.copyWith(
       localStream: null,
       callState: CallState.idle,
     );
-    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final remoteId = ref.watch(chatProvider).remoteId;
+    ref.listen<StateController<Chat>>(chatProvider.state, (previous, current) {
+      if (current.state.callState == CallState.idle) {
+        Navigator.pop(context);
+      }
+    });
 
     return Scaffold(
       body: Center(

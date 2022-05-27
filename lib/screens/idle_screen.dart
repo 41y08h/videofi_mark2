@@ -4,6 +4,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:videofi_mark2/notifiers/chat_notifier.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/socket.dart';
+import 'package:videofi_mark2/utils/disposeStream.dart';
 
 class IdleScreen extends ConsumerStatefulWidget {
   const IdleScreen({
@@ -39,7 +40,93 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       });
     });
 
+    socket.on("offer", (data) async {
+      print("ws: received event: offer");
+
+      final signal = data['signal'];
+      chat.state = chat.state.copyWith(
+        remoteDescription: RTCSessionDescription(
+          signal['sdp'],
+          signal['type'],
+        ),
+        remoteId: data['remoteId'],
+        callState: CallState.incoming,
+      );
+
+      Navigator.pushNamed(context, 'incoming');
+    });
+
+    socket.on("offer-ended", (data) {
+      final chat = ref.read(chatProvider.notifier);
+
+      PeerConnection().dispose();
+
+      chat.state = chat.state.copyWith(
+        callState: CallState.idle,
+        remoteId: null,
+        remoteDescription: null,
+      );
+    });
+
+    socket.on("offer-rejected", (data) {
+      final chat = ref.read(chatProvider.notifier);
+
+      PeerConnection().dispose();
+      disposeStream(chat.state.localStream);
+
+      chat.state = chat.state.copyWith(
+        callState: CallState.idle,
+        remoteId: null,
+        localStream: null,
+      );
+    });
+
+    socket.on("answer", (data) async {
+      print("ws: received event: answer");
+
+      final signal = data['signal'];
+      final answer = RTCSessionDescription(
+        signal['sdp'],
+        signal['type'],
+      );
+      final pc = await PeerConnection().pc;
+      await pc.setRemoteDescription(answer);
+    });
+
+    socket.on("outgoing-time-out", (data) {
+      final chat = ref.read(chatProvider.notifier);
+
+      PeerConnection().dispose();
+      disposeStream(chat.state.localStream);
+
+      chat.state = chat.state.copyWith(
+        callState: CallState.idle,
+        localStream: null,
+      );
+    });
+
+    socket.on("incoming-time-out", (data) {
+      final chat = ref.read(chatProvider.notifier);
+
+      PeerConnection().dispose();
+
+      chat.state = chat.state.copyWith(
+        callState: CallState.idle,
+      );
+    });
+
     final pc = await PeerConnection().pc;
+
+    socket.on("ice-candidate", (data) async {
+      print("received ice-candidate");
+      final signal = data['candidate'];
+      final candidate = RTCIceCandidate(
+        signal['candidate'],
+        signal['sdpMid'],
+        signal['sdpMLineIndex'],
+      );
+      await pc.addCandidate(candidate).catchError((e) {/* ignore */});
+    });
 
     pc.onIceCandidate = (candidate) async {
       socket.emit("ice-candidate", {
@@ -52,6 +139,17 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         remoteStream: event.streams.first,
         callState: CallState.connected,
       );
+    };
+
+    pc.onConnectionState = (state) {
+      if (state != RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        return;
+      }
+
+      chat.state = chat.state.copyWith(
+        callState: CallState.connected,
+      );
+      Navigator.pushNamed(context, 'connected');
     };
   }
 
@@ -74,6 +172,12 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     final offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
+    chat.state = chat.state.copyWith(
+      callState: CallState.outgoing,
+      remoteId: remoteId,
+    );
+    Navigator.pushNamed(context, 'outgoing');
+
     socket.emitWithAck('offer', {
       'remoteId': remoteId,
       'signal': offer.toMap(),
@@ -83,23 +187,13 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       print('call failed: ${data['error']['code']}');
 
       PeerConnection().dispose();
-      // Dispose local stream
-      chat.state.localStream?.getTracks().forEach((track) {
-        track.stop();
-      });
-      chat.state.localStream?.dispose();
+      disposeStream(chat.state.localStream);
 
       chat.state = chat.state.copyWith(
         localStream: null,
         callState: CallState.idle,
       );
     });
-
-    chat.state = chat.state.copyWith(
-      callState: CallState.outgoing,
-      remoteId: remoteId,
-    );
-    Navigator.pushNamed(context, 'outgoing');
   }
 
   @override
