@@ -79,6 +79,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         remoteId: null,
         localStream: null,
       );
+      Navigator.popUntil(context, (route) => route.isFirst);
     });
 
     socket.on("answer", (data) async {
@@ -113,6 +114,23 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       chat.state = chat.state.copyWith(
         callState: CallState.idle,
       );
+    });
+
+    socket.on("call-disconnected", (data) {
+      final chat = ref.read(chatProvider.notifier);
+
+      PeerConnection().dispose();
+      disposeStream(chat.state.localStream);
+      disposeStream(chat.state.remoteStream);
+
+      chat.state = chat.state.copyWith(
+        localStream: null,
+        remoteStream: null,
+        remoteId: null,
+        callState: CallState.idle,
+        remoteDescription: null,
+      );
+      Navigator.pop(context);
     });
 
     final pc = await PeerConnection().pc;

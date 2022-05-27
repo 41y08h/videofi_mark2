@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:videofi_mark2/notifiers/chat_notifier.dart';
+import 'package:videofi_mark2/pc.dart';
+import 'package:videofi_mark2/socket.dart';
+import 'package:videofi_mark2/utils/disposeStream.dart';
 
 class ConnectedScreen extends ConsumerStatefulWidget {
   const ConnectedScreen({Key? key}) : super(key: key);
@@ -30,6 +33,25 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
     localRenderer.srcObject = chat.state.localStream;
   }
 
+  void disconnectCall() {
+    final chat = ref.read(chatProvider.notifier);
+    final socket = SocketConnection().socket;
+    socket.emit("disconnect-call");
+
+    PeerConnection().dispose();
+    disposeStream(chat.state.localStream);
+    disposeStream(chat.state.remoteStream);
+
+    chat.state = chat.state.copyWith(
+      localStream: null,
+      remoteStream: null,
+      remoteId: null,
+      callState: CallState.idle,
+      remoteDescription: null,
+    );
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,15 +72,26 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
                     decoration: const BoxDecoration(color: Colors.black54),
                   )),
               Positioned(
-                right: 20.0,
-                bottom: 20.0,
+                left: 20.0,
+                top: 20.0,
                 child: Container(
                   width: orientation == Orientation.portrait ? 90.0 : 120.0,
                   height: orientation == Orientation.portrait ? 120.0 : 90.0,
                   child: RTCVideoView(localRenderer, mirror: true),
                   decoration: const BoxDecoration(color: Colors.black54),
                 ),
-              )
+              ),
+              // Hang up icon buttion
+              Positioned(
+                right: 20.0,
+                bottom: 20.0,
+                child: Center(
+                  child: IconButton(
+                    icon: const Icon(Icons.call_end),
+                    onPressed: disconnectCall,
+                  ),
+                ),
+              ),
             ],
           ),
         );
