@@ -34,7 +34,9 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
   }
 
   void disconnectCall() {
-    final chat = ref.read(chatProvider.notifier);
+    Navigator.popUntil(context, (route) => route.isFirst);
+
+    final chat = ref.read(chatProvider.state);
     final socket = SocketConnection().socket;
     socket.emit("disconnect-call");
 
@@ -49,53 +51,48 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
       callState: CallState.idle,
       remoteDescription: null,
     );
-    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: OrientationBuilder(builder: (context, orientation) {
-        return Container(
-          child: Stack(
-            children: [
-              Positioned(
-                  left: 0,
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-                    width: MediaQuery.of(context).size.width,
-                    height: MediaQuery.of(context).size.height,
-                    child: RTCVideoView(remoteRenderer),
-                    decoration: const BoxDecoration(color: Colors.black54),
-                  )),
-              Positioned(
-                left: 20.0,
-                top: 20.0,
-                child: Container(
-                  width: orientation == Orientation.portrait ? 90.0 : 120.0,
-                  height: orientation == Orientation.portrait ? 120.0 : 90.0,
-                  child: RTCVideoView(localRenderer, mirror: true),
-                  decoration: const BoxDecoration(color: Colors.black54),
-                ),
-              ),
-              // Hang up icon buttion
-              Positioned(
-                right: 20.0,
-                bottom: 20.0,
-                child: Center(
-                  child: IconButton(
-                    icon: const Icon(Icons.call_end),
-                    onPressed: disconnectCall,
-                  ),
-                ),
-              ),
-            ],
+    return OrientationBuilder(builder: (context, orientation) {
+      return Stack(
+        children: [
+          Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height,
+                child: RTCVideoView(remoteRenderer),
+                decoration: const BoxDecoration(color: Colors.black54),
+              )),
+          Positioned(
+            left: 20.0,
+            top: 20.0,
+            child: Container(
+              width: orientation == Orientation.portrait ? 90.0 : 120.0,
+              height: orientation == Orientation.portrait ? 120.0 : 90.0,
+              child: RTCVideoView(localRenderer, mirror: true),
+              decoration: const BoxDecoration(color: Colors.black54),
+            ),
           ),
-        );
-      }),
-    );
+          // Hang up icon buttion
+          Positioned(
+            right: 20.0,
+            bottom: 20.0,
+            child: Center(
+              child: IconButton(
+                icon: const Icon(Icons.call_end),
+                onPressed: disconnectCall,
+              ),
+            ),
+          ),
+        ],
+      );
+    });
   }
 }

@@ -69,67 +69,65 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
   Widget build(BuildContext context) {
     final remoteId = ref.watch(chatProvider).remoteId;
 
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.face,
-              size: 60,
-              color: Colors.green,
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.face,
+            size: 60,
+            color: Colors.green,
+          ),
+          const SizedBox(
+            height: 8,
+          ),
+          Text(
+            remoteId.toString(),
+            style: const TextStyle(
+              fontSize: 20,
             ),
-            const SizedBox(
-              height: 8,
-            ),
-            Text(
-              remoteId.toString(),
-              style: const TextStyle(
-                fontSize: 20,
+          ),
+          const SizedBox(
+            height: 20,
+          ),
+          const Text(
+            'Incoming',
+          ),
+          const SizedBox(
+            height: 4,
+          ),
+          const SizedBox(
+            height: 4,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipOval(
+                child: Container(
+                  color: Colors.red,
+                  child: IconButton(
+                    color: Colors.white,
+                    onPressed: rejectIncomingCall,
+                    icon: const Icon(Icons.call_end),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(
-              height: 20,
-            ),
-            const Text(
-              'Incoming',
-            ),
-            const SizedBox(
-              height: 4,
-            ),
-            const SizedBox(
-              height: 4,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ClipOval(
-                  child: Container(
-                    color: Colors.red,
-                    child: IconButton(
-                      color: Colors.white,
-                      onPressed: rejectIncomingCall,
-                      icon: const Icon(Icons.call_end),
-                    ),
+              const SizedBox(
+                width: 10,
+              ),
+              ClipOval(
+                child: Container(
+                  color: Colors.lightGreen,
+                  child: IconButton(
+                    color: Colors.white,
+                    onPressed: onAnswerPressed,
+                    icon: const Icon(Icons.call),
                   ),
                 ),
-                const SizedBox(
-                  width: 10,
-                ),
-                ClipOval(
-                  child: Container(
-                    color: Colors.lightGreen,
-                    child: IconButton(
-                      color: Colors.white,
-                      onPressed: onAnswerPressed,
-                      icon: const Icon(Icons.call),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

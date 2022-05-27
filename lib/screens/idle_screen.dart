@@ -53,7 +53,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         callState: CallState.incoming,
       );
 
-      Navigator.pushNamed(context, 'incoming');
+      Navigator.pushNamed(context, 'call-screen');
     });
 
     socket.on("offer-ended", (data) {
@@ -66,6 +66,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         remoteId: null,
         remoteDescription: null,
       );
+      Navigator.popUntil(context, (route) => route.isFirst);
     });
 
     socket.on("offer-rejected", (data) {
@@ -104,6 +105,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         callState: CallState.idle,
         localStream: null,
       );
+      Navigator.popUntil(context, (route) => route.isFirst);
     });
 
     socket.on("incoming-time-out", (data) {
@@ -114,6 +116,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       chat.state = chat.state.copyWith(
         callState: CallState.idle,
       );
+      Navigator.popUntil(context, (route) => route.isFirst);
     });
 
     socket.on("call-disconnected", (data) {
@@ -130,7 +133,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         callState: CallState.idle,
         remoteDescription: null,
       );
-      Navigator.pop(context);
+      Navigator.popUntil(context, (route) => route.isFirst);
     });
 
     final pc = await PeerConnection().pc;
@@ -167,8 +170,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       chat.state = chat.state.copyWith(
         callState: CallState.connected,
       );
-      Navigator.pushNamedAndRemoveUntil(
-          context, 'connected', (route) => route.isFirst);
     };
   }
 
@@ -195,7 +196,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       callState: CallState.outgoing,
       remoteId: remoteId,
     );
-    Navigator.pushNamed(context, 'outgoing');
+    Navigator.pushNamed(context, 'call-screen');
 
     socket.emitWithAck('offer', {
       'remoteId': remoteId,
@@ -217,65 +218,91 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localId = ref.watch(chatProvider).localId;
+    final chat = ref.watch(chatProvider);
 
     return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
         children: [
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // A green dot
-              Container(
-                width: 20,
-                height: 20,
-                decoration: const BoxDecoration(
+          if (chat.callState != CallState.idle)
+            Positioned(
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, 'call-screen');
+                },
+                child: Container(
+                  height: 50,
+                  width: MediaQuery.of(context).size.width,
                   color: Colors.green,
-                  shape: BoxShape.circle,
+                  child: const Center(
+                    child: Text(
+                      "Tap to view call",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    "Your ID",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  // A green dot
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
                     ),
                   ),
-                  Text(
-                    localId.toString(),
-                    style: const TextStyle(
-                      fontSize: 16,
-                    ),
-                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Your ID",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        chat.localId.toString(),
+                        style: const TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  )
                 ],
-              )
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: 160,
-            height: 50,
-            child: TextField(
-              keyboardType: TextInputType.number,
-              controller: remoteIdController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Remote ID',
               ),
-            ),
-          ),
-          SizedBox(
-            width: 160,
-            child: ElevatedButton(
-              child: const Text('Call'),
-              onPressed: onCallPressed,
-            ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 160,
+                height: 50,
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  controller: remoteIdController,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Remote ID',
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 160,
+                child: ElevatedButton(
+                  child: const Text('Call'),
+                  onPressed: onCallPressed,
+                ),
+              ),
+            ],
           ),
         ],
       ),
