@@ -30,11 +30,6 @@ class _OutgoingScreenState extends ConsumerState<OutgoingScreen> {
   @override
   Widget build(BuildContext context) {
     final remoteId = ref.watch(chatProvider).remoteId;
-    ref.listen<StateController<Chat>>(chatProvider.state, (previous, current) {
-      if (current.state.callState == CallState.idle) {
-        Navigator.pop(context);
-      }
-    });
 
     return Scaffold(
       body: Center(

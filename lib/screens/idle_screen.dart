@@ -149,7 +149,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       chat.state = chat.state.copyWith(
         callState: CallState.connected,
       );
-      Navigator.pushNamed(context, 'connected');
+      Navigator.pushNamedAndRemoveUntil(
+          context, 'connected', (route) => route.isFirst);
     };
   }
 
