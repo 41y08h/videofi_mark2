@@ -83,22 +83,14 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       print('call failed: ${data['error']['code']}');
 
       PeerConnection().dispose();
-
       // Dispose local stream
       chat.state.localStream?.getTracks().forEach((track) {
         track.stop();
       });
       chat.state.localStream?.dispose();
 
-      // Dispose remote stream
-      chat.state.remoteStream?.getTracks().forEach((track) {
-        track.stop();
-      });
-      chat.state.remoteStream?.dispose();
-
       chat.state = chat.state.copyWith(
         localStream: null,
-        remoteStream: null,
         callState: CallState.idle,
       );
     });
