@@ -66,6 +66,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         remoteId: null,
         remoteDescription: null,
       );
+      print("set state to idle");
+
       Navigator.popUntil(context, (route) => route.isFirst);
     });
 
@@ -80,6 +82,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         remoteId: null,
         localStream: null,
       );
+      print("set state to idle");
+
       Navigator.popUntil(context, (route) => route.isFirst);
     });
 
@@ -105,6 +109,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         callState: CallState.idle,
         localStream: null,
       );
+      print("set state to idle");
+
       Navigator.popUntil(context, (route) => route.isFirst);
     });
 
@@ -116,6 +122,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       chat.state = chat.state.copyWith(
         callState: CallState.idle,
       );
+      print("set state to idle");
+
       Navigator.popUntil(context, (route) => route.isFirst);
     });
 
@@ -133,6 +141,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         callState: CallState.idle,
         remoteDescription: null,
       );
+      print("set state to idle");
+
       Navigator.popUntil(context, (route) => route.isFirst);
     });
 
@@ -149,20 +159,20 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       await pc.addCandidate(candidate).catchError((e) {/* ignore */});
     });
 
-    pc.onIceCandidate = (candidate) async {
+    PeerConnection().onIceCandidate((candidate) async {
       socket.emit("ice-candidate", {
         'candidate': candidate.toMap(),
       });
-    };
-    pc.onTrack = (event) {
+    });
+    PeerConnection().onTrack((event) {
       if (event.track.kind != 'video') return;
       chat.state = chat.state.copyWith(
         remoteStream: event.streams.first,
         callState: CallState.connected,
       );
-    };
+    });
 
-    pc.onConnectionState = (state) {
+    PeerConnection().onConnectionState((state) {
       if (state != RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
         return;
       }
@@ -170,7 +180,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       chat.state = chat.state.copyWith(
         callState: CallState.connected,
       );
-    };
+    });
   }
 
   void onCallPressed() async {
@@ -213,6 +223,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         localStream: null,
         callState: CallState.idle,
       );
+      print("set state to idle");
     });
   }
 

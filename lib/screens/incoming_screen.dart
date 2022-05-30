@@ -23,6 +23,9 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
     chat.state = chat.state.copyWith(
       callState: CallState.idle,
     );
+    print("set state to idle");
+
+    Navigator.pop(context);
   }
 
   void onAnswerPressed() async {
@@ -45,6 +48,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
 
     final answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
+    print("yeah, answering it");
 
     socket.emitWithAck('answer', {
       'signal': answer.toMap(),
@@ -62,6 +66,9 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
         remoteStream: null,
         callState: CallState.idle,
       );
+      print("set state to idle");
+
+      Navigator.pop(context);
     });
   }
 

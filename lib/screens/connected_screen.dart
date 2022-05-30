@@ -34,8 +34,6 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
   }
 
   void disconnectCall() {
-    Navigator.popUntil(context, (route) => route.isFirst);
-
     final chat = ref.read(chatProvider.state);
     final socket = SocketConnection().socket;
     socket.emit("disconnect-call");
@@ -51,6 +49,8 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
       callState: CallState.idle,
       remoteDescription: null,
     );
+    print("set state to idle");
+    Navigator.pop(context);
   }
 
   @override
