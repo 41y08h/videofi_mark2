@@ -6,7 +6,7 @@ import 'package:videofi_mark2/screens/incoming_screen.dart';
 import 'package:videofi_mark2/screens/outgoing_screen.dart';
 
 class CallScreen extends ConsumerStatefulWidget {
-  static const routeName = CallScreen.routeName;
+  static const routeName = '/call';
   const CallScreen({Key? key}) : super(key: key);
 
   @override

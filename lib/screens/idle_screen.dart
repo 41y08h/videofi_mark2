@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:videofi_mark2/notifiers/chat_notifier.dart';
 import 'package:videofi_mark2/pc.dart';
+import 'package:videofi_mark2/screens/call_screen.dart';
 import 'package:videofi_mark2/socket.dart';
 import 'package:videofi_mark2/utils/disposeStream.dart';
 
@@ -67,9 +68,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         remoteId: null,
         remoteDescription: null,
       );
-      print("set state to idle");
-
-      Navigator.popUntil(context, (route) => route.isFirst);
     });
 
     socket.on("offer-rejected", (data) {
@@ -83,9 +81,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         remoteId: null,
         localStream: null,
       );
-      print("set state to idle");
-
-      Navigator.popUntil(context, (route) => route.isFirst);
     });
 
     socket.on("answer", (data) async {
@@ -110,9 +105,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         callState: CallState.idle,
         localStream: null,
       );
-      print("set state to idle");
-
-      Navigator.popUntil(context, (route) => route.isFirst);
     });
 
     socket.on("incoming-time-out", (data) {
@@ -123,9 +115,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       chat.state = chat.state.copyWith(
         callState: CallState.idle,
       );
-      print("set state to idle");
-
-      Navigator.popUntil(context, (route) => route.isFirst);
     });
 
     socket.on("call-disconnected", (data) {
@@ -142,9 +131,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         callState: CallState.idle,
         remoteDescription: null,
       );
-      print("set state to idle");
-
-      Navigator.popUntil(context, (route) => route.isFirst);
     });
 
     socket.on("ice-candidate", (data) async {
@@ -244,7 +230,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
           localStream: null,
           callState: CallState.idle,
         );
-        print('set state to idle');
       }
     });
   }
