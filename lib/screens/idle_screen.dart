@@ -94,6 +94,12 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       remoteId: null,
       remoteDescription: null,
     );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Missed call'),
+      ),
+    );
   }
 
   void wsOnOfferRejected(data) async {
