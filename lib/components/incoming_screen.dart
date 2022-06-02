@@ -4,7 +4,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/providers/chat.dart';
 import 'package:videofi_mark2/socket.dart';
-import 'package:videofi_mark2/utils/disposeStream.dart';
+import 'package:videofi_mark2/utils/dispose_stream.dart';
 
 class IncomingScreen extends ConsumerStatefulWidget {
   const IncomingScreen({Key? key}) : super(key: key);
@@ -45,14 +45,11 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
 
     final answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    print("yeah, answering it");
 
     socket.emitWithAck('answer', {
       'signal': answer.toMap(),
     }, ack: (data) {
       if (data['error'] == null) return;
-
-      print("answer failed: ${data['error']['code']}");
 
       PeerConnection().dispose();
       disposeStream(chat.state.localStream);

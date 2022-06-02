@@ -5,7 +5,7 @@ import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/providers/chat.dart';
 import 'package:videofi_mark2/screens/call_screen.dart';
 import 'package:videofi_mark2/socket.dart';
-import 'package:videofi_mark2/utils/disposeStream.dart';
+import 'package:videofi_mark2/utils/dispose_stream.dart';
 
 class IdleScreen extends ConsumerStatefulWidget {
   const IdleScreen({
@@ -31,7 +31,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     final chat = ref.read(chatProvider.notifier);
 
     socket.on('connect', (_) {
-      print("connected to ws server");
       socket.emit('get-id');
     });
     socket.on('get-id/callback', (id) {
@@ -43,8 +42,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     });
 
     socket.on("offer", (data) async {
-      print("ws: received event: offer");
-
       final signal = data['signal'];
       chat.state = chat.state.copyWith(
         remoteDescription: RTCSessionDescription(
@@ -84,8 +81,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     });
 
     socket.on("answer", (data) async {
-      print("ws: received event: answer");
-
       final signal = data['signal'];
       final answer = RTCSessionDescription(
         signal['sdp'],
@@ -136,7 +131,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     socket.on("ice-candidate", (data) async {
       final pc = await PeerConnection().pc;
 
-      print("received ice-candidate");
       final signal = data['candidate'];
       final candidate = RTCIceCandidate(
         signal['candidate'],

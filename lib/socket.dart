@@ -1,4 +1,4 @@
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 
 const String kWebSocketURL = 'http://localhost:5000';
 
@@ -10,9 +10,9 @@ class SocketConnection {
     return _instance;
   }
 
-  final _socket = IO.io(kWebSocketURL, <String, dynamic>{
+  final _socket = io.io(kWebSocketURL, <String, dynamic>{
     'transports': ['websocket'],
   });
 
-  IO.Socket get socket => _socket;
+  io.Socket get socket => _socket;
 }

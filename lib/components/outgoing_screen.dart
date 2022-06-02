@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/providers/chat.dart';
 import 'package:videofi_mark2/socket.dart';
-import 'package:videofi_mark2/utils/disposeStream.dart';
+import 'package:videofi_mark2/utils/dispose_stream.dart';
 
 class OutgoingScreen extends ConsumerStatefulWidget {
   const OutgoingScreen({Key? key}) : super(key: key);
