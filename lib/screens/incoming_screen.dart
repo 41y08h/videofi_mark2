@@ -68,7 +68,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final remoteId = ref.watch(chatProvider).remoteId;
+    final remoteId = ref.watch(chatProvider.select((value) => value.remoteId));
 
     return Center(
       child: Column(

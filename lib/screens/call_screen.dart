@@ -16,10 +16,11 @@ class CallScreen extends ConsumerStatefulWidget {
 class _CallScreenState extends ConsumerState<CallScreen> {
   @override
   Widget build(BuildContext context) {
-    final chat = ref.watch(chatProvider);
+    final callState =
+        ref.watch(chatProvider.select((state) => state.callState));
 
     return Scaffold(body: Builder(builder: (context) {
-      switch (chat.callState) {
+      switch (callState) {
         case CallState.outgoing:
           return const OutgoingScreen();
         case CallState.incoming:

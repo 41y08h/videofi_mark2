@@ -236,12 +236,14 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final chat = ref.watch(chatProvider);
+    final localId = ref.watch(chatProvider.select((value) => value.localId));
+    final callState =
+        ref.watch(chatProvider.select((value) => value.callState));
 
     return Scaffold(
       body: Stack(
         children: [
-          if (chat.callState != CallState.idle)
+          if (callState != CallState.idle)
             Positioned(
               child: GestureDetector(
                 onTap: () {
@@ -291,7 +293,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
                         ),
                       ),
                       Text(
-                        chat.localId.toString(),
+                        localId.toString(),
                         style: const TextStyle(
                           fontSize: 16,
                         ),
