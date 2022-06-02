@@ -10,9 +10,14 @@ class SocketConnection {
     return _instance;
   }
 
-  final _socket = io.io(kWebSocketURL, <String, dynamic>{
-    'transports': ['websocket'],
-  });
+  final _socket = io.io(
+    kWebSocketURL,
+    io.OptionBuilder()
+        .setTransports(['websocket'])
+        .setReconnectionDelay(500)
+        .setReconnectionAttempts(10000)
+        .build(),
+  );
 
   io.Socket get socket => _socket;
 }

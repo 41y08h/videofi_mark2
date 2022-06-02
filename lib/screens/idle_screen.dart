@@ -19,6 +19,7 @@ class IdleScreen extends ConsumerStatefulWidget {
 class _IdleScreenState extends ConsumerState<IdleScreen> {
   TextEditingController remoteIdController = TextEditingController();
   bool isTryingToCall = false;
+  bool isWSConnected = false;
 
   @override
   void initState() {
@@ -30,16 +31,9 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     final socket = SocketConnection().socket;
     final chat = ref.read(chatProvider.notifier);
 
-    socket.on('connect', (_) {
-      socket.emit('get-id');
-    });
-    socket.on('get-id/callback', (id) {
-      setState(() {
-        chat.state = chat.state.copyWith(
-          localId: id,
-        );
-      });
-    });
+    socket.on('connect', wsOnConnect);
+    socket.on('get-id/callback', wsOnIdCallback);
+    socket.on("disconnect", wsOnDisconnect);
 
     socket.on("offer", (data) async {
       final signal = data['signal'];
@@ -164,6 +158,27 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     });
   }
 
+  void wsOnConnect(dynamic _) {
+    final socket = SocketConnection().socket;
+    socket.emit("get-id");
+  }
+
+  void wsOnIdCallback(dynamic id) {
+    setState(() {
+      final chat = ref.read(chatProvider.notifier);
+      chat.state = chat.state.copyWith(
+        localId: id,
+      );
+      isWSConnected = true;
+    });
+  }
+
+  void wsOnDisconnect(dynamic _) {
+    setState(() {
+      isWSConnected = false;
+    });
+  }
+
   void onCallPressed() async {
     setState(() {
       isTryingToCall = true;
@@ -230,14 +245,25 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localId = ref.watch(chatProvider.select((value) => value.localId));
-    final callState =
-        ref.watch(chatProvider.select((value) => value.callState));
+    final localId = ref.watch(
+      chatProvider.select((value) => value.localId.toString()),
+    );
+    final isCallInProgress = ref.watch(
+      chatProvider.select((value) => value.callState != CallState.idle),
+    );
+
+    if (isWSConnected == false) {
+      return const Scaffold(
+        body: Center(
+          child: Text("Connecting..."),
+        ),
+      );
+    }
 
     return Scaffold(
       body: Stack(
         children: [
-          if (callState != CallState.idle)
+          if (isCallInProgress)
             Positioned(
               child: GestureDetector(
                 onTap: () {
@@ -287,7 +313,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
                         ),
                       ),
                       Text(
-                        localId.toString(),
+                        localId,
                         style: const TextStyle(
                           fontSize: 16,
                         ),
