@@ -29,110 +29,19 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
 
   void initialize() async {
     final socket = SocketConnection().socket;
-    final chat = ref.read(chatProvider.notifier);
 
     socket.on('connect', wsOnConnect);
     socket.on('get-id/callback', wsOnIdCallback);
     socket.on("disconnect", wsOnDisconnect);
 
-    socket.on("offer", (data) async {
-      final signal = data['signal'];
-      chat.state = chat.state.copyWith(
-        remoteDescription: RTCSessionDescription(
-          signal['sdp'],
-          signal['type'],
-        ),
-        remoteId: data['remoteId'],
-        callState: CallState.incoming,
-      );
-
-      Navigator.pushNamed(context, CallScreen.routeName);
-    });
-
-    socket.on("offer-ended", (data) {
-      final chat = ref.read(chatProvider.notifier);
-
-      PeerConnection().dispose();
-
-      chat.state = chat.state.copyWith(
-        callState: CallState.idle,
-        remoteId: null,
-        remoteDescription: null,
-      );
-    });
-
-    socket.on("offer-rejected", (data) {
-      final chat = ref.read(chatProvider.notifier);
-
-      PeerConnection().dispose();
-      disposeStream(chat.state.localStream);
-
-      chat.state = chat.state.copyWith(
-        callState: CallState.idle,
-        remoteId: null,
-        localStream: null,
-      );
-    });
-
-    socket.on("answer", (data) async {
-      final signal = data['signal'];
-      final answer = RTCSessionDescription(
-        signal['sdp'],
-        signal['type'],
-      );
-      final pc = await PeerConnection().pc;
-      await pc.setRemoteDescription(answer);
-    });
-
-    socket.on("outgoing-time-out", (data) {
-      final chat = ref.read(chatProvider.notifier);
-
-      PeerConnection().dispose();
-      disposeStream(chat.state.localStream);
-
-      chat.state = chat.state.copyWith(
-        callState: CallState.idle,
-        localStream: null,
-      );
-    });
-
-    socket.on("incoming-time-out", (data) {
-      final chat = ref.read(chatProvider.notifier);
-
-      PeerConnection().dispose();
-
-      chat.state = chat.state.copyWith(
-        callState: CallState.idle,
-      );
-    });
-
-    socket.on("call-disconnected", (data) {
-      final chat = ref.read(chatProvider.notifier);
-
-      PeerConnection().dispose();
-      disposeStream(chat.state.localStream);
-      disposeStream(chat.state.remoteStream);
-
-      chat.state = chat.state.copyWith(
-        localStream: null,
-        remoteStream: null,
-        remoteId: null,
-        callState: CallState.idle,
-        remoteDescription: null,
-      );
-    });
-
-    socket.on("ice-candidate", (data) async {
-      final pc = await PeerConnection().pc;
-
-      final signal = data['candidate'];
-      final candidate = RTCIceCandidate(
-        signal['candidate'],
-        signal['sdpMid'],
-        signal['sdpMLineIndex'],
-      );
-      await pc.addCandidate(candidate).catchError((e) {/* ignore */});
-    });
+    socket.on("offer", wsOnOffer);
+    socket.on("offer-ended", wsOnOfferEnded);
+    socket.on("offer-rejected", wsOnOfferRejected);
+    socket.on("answer", wsOnAnswer);
+    socket.on("outgoing-time-out", wsOnOutgoingTimeout);
+    socket.on("incoming-time-out", wsOnIncomingTimeout);
+    socket.on("ice-candidate", wsOnIceCandidate);
+    socket.on("call-disconnected", wsOnCallDisconnected);
 
     PeerConnection().onIceCandidate((candidate) async {
       socket.emit("ice-candidate", {
@@ -140,6 +49,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       });
     });
     PeerConnection().onTrack((event) {
+      final chat = ref.read(chatProvider.notifier);
+
       if (event.track.kind != 'video') return;
       chat.state = chat.state.copyWith(
         remoteStream: event.streams.first,
@@ -148,6 +59,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     });
 
     PeerConnection().onConnectionState((state) {
+      final chat = ref.read(chatProvider.notifier);
+
       if (state != RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
         return;
       }
@@ -158,7 +71,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     });
   }
 
-  void wsOnConnect(dynamic _) {
+  void wsOnConnect(_) {
     final socket = SocketConnection().socket;
     socket.emit("get-id");
   }
@@ -173,10 +86,110 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     });
   }
 
-  void wsOnDisconnect(dynamic _) {
+  void wsOnDisconnect(_) {
     setState(() {
       isWSConnected = false;
     });
+  }
+
+  void wsOnOffer(data) async {
+    final chat = ref.read(chatProvider.notifier);
+    final signal = data['signal'];
+    chat.state = chat.state.copyWith(
+      remoteDescription: RTCSessionDescription(
+        signal['sdp'],
+        signal['type'],
+      ),
+      remoteId: data['remoteId'],
+      callState: CallState.incoming,
+    );
+
+    Navigator.pushNamed(context, CallScreen.routeName);
+  }
+
+  void wsOnOfferEnded(data) async {
+    final chat = ref.read(chatProvider.notifier);
+
+    PeerConnection().dispose();
+
+    chat.state = chat.state.copyWith(
+      callState: CallState.idle,
+      remoteId: null,
+      remoteDescription: null,
+    );
+  }
+
+  void wsOnOfferRejected(data) async {
+    final chat = ref.read(chatProvider.notifier);
+
+    PeerConnection().dispose();
+    disposeStream(chat.state.localStream);
+
+    chat.state = chat.state.copyWith(
+      callState: CallState.idle,
+      remoteId: null,
+      localStream: null,
+    );
+  }
+
+  void wsOnAnswer(data) async {
+    final signal = data['signal'];
+    final answer = RTCSessionDescription(
+      signal['sdp'],
+      signal['type'],
+    );
+    final pc = await PeerConnection().pc;
+    await pc.setRemoteDescription(answer);
+  }
+
+  void wsOnOutgoingTimeout(data) async {
+    final chat = ref.read(chatProvider.notifier);
+
+    PeerConnection().dispose();
+    disposeStream(chat.state.localStream);
+
+    chat.state = chat.state.copyWith(
+      callState: CallState.idle,
+      localStream: null,
+    );
+  }
+
+  void wsOnIncomingTimeout(data) async {
+    final chat = ref.read(chatProvider.notifier);
+
+    PeerConnection().dispose();
+
+    chat.state = chat.state.copyWith(
+      callState: CallState.idle,
+    );
+  }
+
+  void wsOnCallDisconnected(_) async {
+    final chat = ref.read(chatProvider.notifier);
+
+    PeerConnection().dispose();
+    disposeStream(chat.state.localStream);
+    disposeStream(chat.state.remoteStream);
+
+    chat.state = chat.state.copyWith(
+      localStream: null,
+      remoteStream: null,
+      remoteId: null,
+      callState: CallState.idle,
+      remoteDescription: null,
+    );
+  }
+
+  void wsOnIceCandidate(data) async {
+    final pc = await PeerConnection().pc;
+
+    final signal = data['candidate'];
+    final candidate = RTCIceCandidate(
+      signal['candidate'],
+      signal['sdpMid'],
+      signal['sdpMLineIndex'],
+    );
+    await pc.addCandidate(candidate).catchError((e) {/* ignore */});
   }
 
   void onCallPressed() async {
