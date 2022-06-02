@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:videofi_mark2/pc.dart';
@@ -61,6 +62,22 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
         callState: CallState.idle,
       );
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    FlutterRingtonePlayer.play(
+      android: AndroidSounds.ringtone,
+      ios: IosSounds.glass,
+      looping: true,
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    FlutterRingtonePlayer.stop();
   }
 
   @override
