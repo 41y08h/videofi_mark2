@@ -43,32 +43,9 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     socket.on("ice-candidate", wsOnIceCandidate);
     socket.on("call-disconnected", wsOnCallDisconnected);
 
-    PeerConnection().onIceCandidate((candidate) async {
-      socket.emit("ice-candidate", {
-        'candidate': candidate.toMap(),
-      });
-    });
-    PeerConnection().onTrack((event) {
-      final chat = ref.read(chatProvider.notifier);
-
-      if (event.track.kind != 'video') return;
-      chat.state = chat.state.copyWith(
-        remoteStream: event.streams.first,
-        callState: CallState.connected,
-      );
-    });
-
-    PeerConnection().onConnectionState((state) {
-      final chat = ref.read(chatProvider.notifier);
-
-      if (state != RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
-        return;
-      }
-
-      chat.state = chat.state.copyWith(
-        callState: CallState.connected,
-      );
-    });
+    PeerConnection().onConnectionState(pcOnConnectionState);
+    PeerConnection().onIceCandidate(pcOnIceCandidate);
+    PeerConnection().onTrack(pcOnTrack);
   }
 
   void wsOnConnect(_) {
@@ -254,6 +231,35 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         );
       }
     });
+  }
+
+  void pcOnIceCandidate(RTCIceCandidate candidate) {
+    final socket = SocketConnection().socket;
+    socket.emit("ice-candidate", {
+      'candidate': candidate.toMap(),
+    });
+  }
+
+  void pcOnTrack(event) {
+    final chat = ref.read(chatProvider.notifier);
+
+    if (event.track.kind != 'video') return;
+    chat.state = chat.state.copyWith(
+      remoteStream: event.streams.first,
+      callState: CallState.connected,
+    );
+  }
+
+  void pcOnConnectionState(RTCPeerConnectionState state) {
+    final chat = ref.read(chatProvider.notifier);
+
+    if (state != RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+      return;
+    }
+
+    chat.state = chat.state.copyWith(
+      callState: CallState.connected,
+    );
   }
 
   @override
