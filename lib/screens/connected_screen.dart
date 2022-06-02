@@ -10,8 +10,7 @@ class ConnectedScreen extends ConsumerStatefulWidget {
   const ConnectedScreen({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() =>
-      _ConnectedScreenState();
+  _ConnectedScreenState createState() => _ConnectedScreenState();
 }
 
 class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
@@ -24,13 +23,23 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
     initializeStreams();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+    remoteRenderer.dispose();
+    localRenderer.dispose();
+  }
+
   void initializeStreams() async {
-    final chat = ref.read(chatProvider.notifier);
+    final chat = ref.read(chatProvider);
+
     await remoteRenderer.initialize();
     await localRenderer.initialize();
 
-    remoteRenderer.srcObject = chat.state.remoteStream;
-    localRenderer.srcObject = chat.state.localStream;
+    remoteRenderer.srcObject = chat.remoteStream;
+    localRenderer.srcObject = chat.localStream;
+
+    setState(() {});
   }
 
   void disconnectCall() {
@@ -55,44 +64,31 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return OrientationBuilder(builder: (context, orientation) {
-      return Stack(
-        children: [
-          Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-                width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height,
-                child: RTCVideoView(remoteRenderer),
-                decoration: const BoxDecoration(color: Colors.black54),
-              )),
-          Positioned(
-            left: 20.0,
-            top: 20.0,
-            child: Container(
-              width: orientation == Orientation.portrait ? 90.0 : 120.0,
-              height: orientation == Orientation.portrait ? 120.0 : 90.0,
-              child: RTCVideoView(localRenderer, mirror: true),
-              decoration: const BoxDecoration(color: Colors.black54),
+    return Stack(
+      children: [
+        Positioned(
+          top: 0,
+          right: 0,
+          child: SizedBox(
+            width: 90,
+            height: 160,
+            child: RTCVideoView(localRenderer),
+          ),
+        ),
+        RTCVideoView(remoteRenderer),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: SizedBox(
+            width: 90,
+            height: 90,
+            child: IconButton(
+              onPressed: disconnectCall,
+              icon: const Icon(Icons.call_end),
             ),
           ),
-          // Hang up icon buttion
-          Positioned(
-            right: 20.0,
-            bottom: 20.0,
-            child: Center(
-              child: IconButton(
-                icon: const Icon(Icons.call_end),
-                onPressed: disconnectCall,
-              ),
-            ),
-          ),
-        ],
-      );
-    });
+        ),
+      ],
+    );
   }
 }

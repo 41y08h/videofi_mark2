@@ -146,9 +146,9 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       Navigator.popUntil(context, (route) => route.isFirst);
     });
 
-    final pc = await PeerConnection().pc;
-
     socket.on("ice-candidate", (data) async {
+      final pc = await PeerConnection().pc;
+
       print("received ice-candidate");
       final signal = data['candidate'];
       final candidate = RTCIceCandidate(
