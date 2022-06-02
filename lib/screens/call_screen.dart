@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:videofi_mark2/notifiers/chat_notifier.dart';
 import 'package:videofi_mark2/components/connected_screen.dart';
 import 'package:videofi_mark2/components/incoming_screen.dart';
 import 'package:videofi_mark2/components/outgoing_screen.dart';
+import 'package:videofi_mark2/providers/chat.dart';
 
 class CallScreen extends ConsumerStatefulWidget {
   static const routeName = '/call';

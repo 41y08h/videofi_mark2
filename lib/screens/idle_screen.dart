@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:videofi_mark2/notifiers/chat_notifier.dart';
 import 'package:videofi_mark2/pc.dart';
+import 'package:videofi_mark2/providers/chat.dart';
 import 'package:videofi_mark2/screens/call_screen.dart';
 import 'package:videofi_mark2/socket.dart';
 import 'package:videofi_mark2/utils/disposeStream.dart';
