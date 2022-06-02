@@ -54,7 +54,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         callState: CallState.incoming,
       );
 
-      Navigator.pushNamed(context, 'call-screen');
+      Navigator.pushNamed(context, CallScreen.routeName);
     });
 
     socket.on("offer-ended", (data) {
@@ -224,7 +224,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
           callState: CallState.outgoing,
           remoteId: remoteId,
         );
-        Navigator.pushNamed(context, 'call-screen');
+        Navigator.pushNamed(context, CallScreen.routeName);
         setState(() {
           isTryingToCall = false;
         });
@@ -244,6 +244,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
           localStream: null,
           callState: CallState.idle,
         );
+        print('set state to idle');
       }
     });
   }
@@ -259,7 +260,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
             Positioned(
               child: GestureDetector(
                 onTap: () {
-                  Navigator.pushNamed(context, 'call-screen');
+                  Navigator.pushNamed(context, CallScreen.routeName);
                 },
                 child: Container(
                   height: 50,

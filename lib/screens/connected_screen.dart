@@ -59,7 +59,6 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
       remoteDescription: null,
     );
     print("set state to idle");
-    Navigator.pop(context);
   }
 
   @override

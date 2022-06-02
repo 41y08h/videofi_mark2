@@ -26,8 +26,6 @@ class _OutgoingScreenState extends ConsumerState<OutgoingScreen> {
       callState: CallState.idle,
     );
     print("set state to idle");
-
-    Navigator.pop(context);
   }
 
   @override

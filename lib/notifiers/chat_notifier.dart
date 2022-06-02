@@ -31,7 +31,7 @@ class Chat {
     MediaStream? localStream,
     int? remoteId,
     MediaStream? remoteStream,
-    CallState callState = CallState.idle,
+    CallState? callState,
     RTCSessionDescription? remoteDescription,
   }) {
     return Chat(
@@ -39,7 +39,7 @@ class Chat {
       localStream: localStream ?? this.localStream,
       remoteId: remoteId ?? this.remoteId,
       remoteStream: remoteStream ?? this.remoteStream,
-      callState: callState,
+      callState: callState ?? this.callState,
       remoteDescription: remoteDescription ?? this.remoteDescription,
     );
   }

@@ -6,6 +6,7 @@ import 'package:videofi_mark2/screens/incoming_screen.dart';
 import 'package:videofi_mark2/screens/outgoing_screen.dart';
 
 class CallScreen extends ConsumerStatefulWidget {
+  static const routeName = CallScreen.routeName;
   const CallScreen({Key? key}) : super(key: key);
 
   @override
@@ -17,12 +18,6 @@ class _CallScreenState extends ConsumerState<CallScreen> {
   Widget build(BuildContext context) {
     final chat = ref.watch(chatProvider);
 
-    ref.listen<StateController<Chat>>(chatProvider.state, (previous, current) {
-      if (current.state.callState == CallState.idle) {
-        Navigator.pop(context);
-      }
-    });
-
     return Scaffold(body: Builder(builder: (context) {
       switch (chat.callState) {
         case CallState.outgoing:
@@ -32,9 +27,8 @@ class _CallScreenState extends ConsumerState<CallScreen> {
         case CallState.connected:
           return const ConnectedScreen();
         default:
-          return const SizedBox(
-            child: Text("Something went wrong :("),
-          );
+          Future.microtask(() => Navigator.pop(context));
+          return const SizedBox();
       }
     }));
   }

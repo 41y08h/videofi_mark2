@@ -7,10 +7,10 @@ main() {
   runApp(ProviderScope(
     child: MaterialApp(
       title: 'Videofi',
-      initialRoute: 'idle',
+      initialRoute: '/',
       routes: {
-        'idle': (context) => const IdleScreen(),
-        'call-screen': (context) => const CallScreen(),
+        '/': (context) => const IdleScreen(),
+        CallScreen.routeName: (context) => const CallScreen(),
       },
     ),
   ));
