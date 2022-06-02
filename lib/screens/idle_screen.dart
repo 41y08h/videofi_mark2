@@ -17,6 +17,7 @@ class IdleScreen extends ConsumerStatefulWidget {
 
 class _IdleScreenState extends ConsumerState<IdleScreen> {
   TextEditingController remoteIdController = TextEditingController();
+  bool isTryingToCall = false;
 
   @override
   void initState() {
@@ -184,46 +185,66 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
   }
 
   void onCallPressed() async {
+    setState(() {
+      isTryingToCall = true;
+    });
+
     final chat = ref.read(chatProvider.notifier);
     final socket = SocketConnection().socket;
     final pc = await PeerConnection().pc;
-    final remoteId = int.parse(remoteIdController.text);
+    final remoteId = int.tryParse(remoteIdController.text);
 
-    final localStream = await navigator.mediaDevices.getUserMedia({
-      'audio': true,
-      'video': true,
-    });
-    chat.state = chat.state.copyWith(localStream: localStream);
+    try {
+      final localStream = await navigator.mediaDevices.getUserMedia({
+        'audio': true,
+        'video': true,
+      });
 
-    localStream.getTracks().forEach((element) {
-      pc.addTrack(element, localStream);
-    });
+      chat.state = chat.state.copyWith(localStream: localStream);
+      localStream.getTracks().forEach((element) {
+        pc.addTrack(element, localStream);
+      });
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Camera permission denied"),
+      ));
+
+      return;
+    }
 
     final offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-
-    chat.state = chat.state.copyWith(
-      callState: CallState.outgoing,
-      remoteId: remoteId,
-    );
-    Navigator.pushNamed(context, 'call-screen');
 
     socket.emitWithAck('offer', {
       'remoteId': remoteId,
       'signal': offer.toMap(),
     }, ack: (data) async {
-      if (data['error'] == null) return;
+      if (data['error'] == null) {
+        chat.state = chat.state.copyWith(
+          callState: CallState.outgoing,
+          remoteId: remoteId,
+        );
+        Navigator.pushNamed(context, 'call-screen');
+        setState(() {
+          isTryingToCall = false;
+        });
+      } else {
+        setState(() {
+          isTryingToCall = false;
+        });
+        final errorMessage = data['error']['message'];
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(errorMessage),
+        ));
 
-      print('call failed: ${data['error']['code']}');
+        PeerConnection().dispose();
+        disposeStream(chat.state.localStream);
 
-      PeerConnection().dispose();
-      disposeStream(chat.state.localStream);
-
-      chat.state = chat.state.copyWith(
-        localStream: null,
-        callState: CallState.idle,
-      );
-      print("set state to idle");
+        chat.state = chat.state.copyWith(
+          localStream: null,
+          callState: CallState.idle,
+        );
+      }
     });
   }
 
@@ -300,17 +321,24 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
                 child: TextField(
                   keyboardType: TextInputType.number,
                   controller: remoteIdController,
+                  onChanged: (_) {
+                    // To update the state of the button
+                    setState(() {});
+                  },
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     labelText: 'Remote ID',
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
               SizedBox(
                 width: 160,
                 child: ElevatedButton(
-                  child: const Text('Call'),
-                  onPressed: onCallPressed,
+                  child: Text(isTryingToCall ? '...' : 'Call'),
+                  onPressed: remoteIdController.text.isEmpty || isTryingToCall
+                      ? null
+                      : onCallPressed,
                 ),
               ),
             ],

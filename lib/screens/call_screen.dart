@@ -17,6 +17,12 @@ class _CallScreenState extends ConsumerState<CallScreen> {
   Widget build(BuildContext context) {
     final chat = ref.watch(chatProvider);
 
+    ref.listen<StateController<Chat>>(chatProvider.state, (previous, current) {
+      if (current.state.callState == CallState.idle) {
+        Navigator.pop(context);
+      }
+    });
+
     return Scaffold(body: Builder(builder: (context) {
       switch (chat.callState) {
         case CallState.outgoing:
