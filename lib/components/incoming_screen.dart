@@ -65,22 +65,6 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    FlutterRingtonePlayer.play(
-      android: AndroidSounds.ringtone,
-      ios: IosSounds.glass,
-      looping: true,
-    );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    FlutterRingtonePlayer.stop();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final remoteId = ref.watch(chatProvider.select((value) => value.remoteId));
 
