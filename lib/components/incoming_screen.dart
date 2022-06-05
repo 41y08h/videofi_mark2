@@ -31,14 +31,22 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
     final socket = SocketConnection().socket;
     final pc = await PeerConnection().pc;
 
-    final localStream = await navigator.mediaDevices.getUserMedia({
-      'audio': true,
-      'video': true,
-    });
-    localStream.getTracks().forEach((element) {
-      pc.addTrack(element, localStream);
-    });
-    chat.state = chat.state.copyWith(localStream: localStream);
+    try {
+      final localStream = await navigator.mediaDevices.getUserMedia({
+        'audio': true,
+        'video': true,
+      });
+      chat.state = chat.state.copyWith(localStream: localStream);
+      localStream.getTracks().forEach((element) {
+        pc.addTrack(element, localStream);
+      });
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Camera permission denied"),
+      ));
+
+      return;
+    }
 
     await pc.setRemoteDescription(
       chat.state.remoteDescription as RTCSessionDescription,
