@@ -9,6 +9,7 @@ class PeerConnection {
     return _instance;
   }
 
+  Future<RTCPeerConnection>? _initFuture;
   bool isInitialized = false;
   RTCPeerConnection? _pc;
   Future<RTCPeerConnection> get pc async => _pc ??= await initialize();
@@ -18,7 +19,12 @@ class PeerConnection {
   final List<Function(RTCPeerConnectionState state)> _onConnectionState = [];
 
   Future<RTCPeerConnection> initialize() async {
-    final pc = await createPeerConnection({
+    if (isInitialized) return pc;
+    if (_initFuture != null) {
+      return _initFuture as Future<RTCPeerConnection>;
+    }
+
+    _initFuture = createPeerConnection({
       'iceServers': [
         {'url': 'stun:stun.l.google.com:19302'},
       ],
@@ -28,21 +34,26 @@ class PeerConnection {
       'optional': [
         {'DtlsSrtpKeyAgreement': true},
       ]
-    });
-    // Set event listeners
-    pc.onIceCandidate = callAll(_onIceCandidate);
-    pc.onTrack = callAll(_onTrack);
-    pc.onConnectionState = callAll(_onConnectionState);
+    }).then((pc) {
+      // Set event listeners
+      pc.onIceCandidate = callAll(_onIceCandidate);
+      pc.onTrack = callAll(_onTrack);
+      pc.onConnectionState = callAll(_onConnectionState);
 
-    _pc = pc;
-    isInitialized = true;
-    return _pc as RTCPeerConnection;
+      _pc = pc;
+      isInitialized = true;
+
+      return _pc as RTCPeerConnection;
+    });
+
+    return _initFuture as Future<RTCPeerConnection>;
   }
 
   Future<void> dispose() async {
     _pc?.dispose();
     _pc = null;
     isInitialized = false;
+    _initFuture = null;
   }
 
   void onIceCandidate(Function(RTCIceCandidate candidate) callback) {
