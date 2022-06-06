@@ -51,6 +51,17 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     PeerConnection().onTrack(pcOnTrack);
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+    final chat = ref.read(chatProvider);
+    disposeStream(chat.localStream);
+    disposeStream(chat.remoteStream);
+    SocketConnection().socket.dispose();
+    PeerConnection().dispose();
+    outgoingAudio.dispose();
+  }
+
   void wsOnConnect(_) {
     final socket = SocketConnection().socket;
     socket.emit("get-id");
@@ -222,11 +233,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         setState(() {
           isTryingToCall = false;
         });
-
-        // Play dial tone audio
-        await outgoingAudio.setAsset('assets/dial-ring.mp3');
-        await outgoingAudio.setLoopMode(LoopMode.all);
-        await outgoingAudio.play();
       } else {
         setState(() {
           isTryingToCall = false;
@@ -284,6 +290,22 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     final isCallInProgress = ref.watch(
       chatProvider.select((value) => value.callState != CallState.idle),
     );
+    ref.listen<CallState>(chatProvider.select((value) => value.callState),
+        (previous, current) async {
+      if (current == CallState.outgoing) {
+        await outgoingAudio.setAsset('assets/dial-ring.mp3');
+        await outgoingAudio.setLoopMode(LoopMode.all);
+        await outgoingAudio.setVolume(0.1);
+        await outgoingAudio.setAndroidAudioAttributes(
+          const AndroidAudioAttributes(
+            usage: AndroidAudioUsage.voiceCommunicationSignalling,
+          ),
+        );
+        await outgoingAudio.play();
+      } else {
+        await outgoingAudio.stop();
+      }
+    });
 
     if (isWSConnected == false) {
       return const Scaffold(
