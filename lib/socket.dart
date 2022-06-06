@@ -1,6 +1,7 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
-const String kWebSocketURL = 'http://38e6-103-152-158-197.ngrok.io';
+final kWebSocketURL = dotenv.env['WEBSOCKETS_SERVER_URL'];
 
 class SocketConnection {
   static final SocketConnection _instance = SocketConnection._();

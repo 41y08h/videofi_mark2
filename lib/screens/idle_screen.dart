@@ -1,6 +1,8 @@
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/providers/chat.dart';
 import 'package:videofi_mark2/screens/call_screen.dart';
@@ -20,6 +22,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
   TextEditingController remoteIdController = TextEditingController();
   bool isTryingToCall = false;
   bool isWSConnected = false;
+  final outgoingAudio = AudioPlayer();
 
   @override
   void initState() {
@@ -219,6 +222,11 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         setState(() {
           isTryingToCall = false;
         });
+
+        // Play dial tone audio
+        await outgoingAudio.setAsset('assets/dial-ring.mp3');
+        await outgoingAudio.setLoopMode(LoopMode.all);
+        await outgoingAudio.play();
       } else {
         setState(() {
           isTryingToCall = false;
