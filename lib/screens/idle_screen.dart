@@ -1,19 +1,16 @@
 import 'dart:async';
 
-import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:perfect_volume_control/perfect_volume_control.dart';
+import 'package:videofi_mark2/constants.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/providers/chat.dart';
 import 'package:videofi_mark2/screens/call_screen.dart';
 import 'package:videofi_mark2/socket.dart';
 import 'package:videofi_mark2/utils/dispose_stream.dart';
-import 'package:videofi_mark2/utils/ringtone_manager.dart';
 import 'package:flutter_android_volume_keydown/flutter_android_volume_keydown.dart';
 
 class IdleScreen extends ConsumerStatefulWidget {
@@ -294,6 +291,51 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     );
   }
 
+  Future<void> playOutgoingRingtone() async {
+    final player = outgoingAudio;
+
+    await player.setAsset('assets/dial-ring.mp3');
+    await player.setLoopMode(LoopMode.all);
+    await player.setVolume(0.1);
+    await player.setAndroidAudioAttributes(kRingtoneAndroidAudioAttributes);
+    await player.play();
+  }
+
+  Future<String> getDefaultRingtoneUri() async {
+    const channel = MethodChannel('videofi_common_channel');
+    final String ringtone = await channel.invokeMethod('getDefaultRingtoneUri');
+    return ringtone;
+  }
+
+  Future<void> playIncomingRingtone() async {
+    // Silent when volume buttons are pressed
+    volumeButtonSubscription = FlutterAndroidVolumeKeydown.stream
+        .listen((event) => incomingAudio.stop());
+
+    // Get the default ringtone in android
+    var uri = Uri.parse(await getDefaultRingtoneUri());
+    final ringtone = AudioSource.uri(uri);
+
+    final player = incomingAudio;
+    await player.setAudioSource(ringtone);
+    await player.setLoopMode(LoopMode.all);
+    await player.setVolume(1);
+    await player.setAndroidAudioAttributes(kRingtoneAndroidAudioAttributes);
+    await player.play();
+  }
+
+  void onCallStateChanged(CallState? previous, CallState current) {
+    if (current == CallState.outgoing) {
+      playOutgoingRingtone();
+    } else if (current == CallState.incoming) {
+      playIncomingRingtone();
+    } else {
+      outgoingAudio.stop();
+      incomingAudio.stop();
+      volumeButtonSubscription?.cancel();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localId = ref.watch(
@@ -302,33 +344,10 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     final isCallInProgress = ref.watch(
       chatProvider.select((value) => value.callState != CallState.idle),
     );
-    ref.listen<CallState>(chatProvider.select((value) => value.callState),
-        (previous, current) async {
-      if (current == CallState.outgoing) {
-        await outgoingAudio.setAsset('assets/dial-ring.mp3');
-        await outgoingAudio.setLoopMode(LoopMode.all);
-        await outgoingAudio.setVolume(0.1);
-        await outgoingAudio.setAndroidAudioAttributes(
-          const AndroidAudioAttributes(
-            usage: AndroidAudioUsage.voiceCommunicationSignalling,
-          ),
-        );
-        await outgoingAudio.play();
-      } else if (current == CallState.incoming) {
-        volumeButtonSubscription = FlutterAndroidVolumeKeydown.stream
-            .listen((event) => incomingAudio.stop());
-        final ringtoneUri = await RingtoneManager.getDefaultRingtoneUri();
-        await incomingAudio
-            .setAudioSource(AudioSource.uri(Uri.parse(ringtoneUri)));
-        await incomingAudio.setLoopMode(LoopMode.all);
-        await incomingAudio.setVolume(1);
-        await incomingAudio.play();
-      } else {
-        outgoingAudio.stop();
-        incomingAudio.stop();
-        volumeButtonSubscription?.cancel();
-      }
-    });
+    ref.listen<CallState>(
+      chatProvider.select((value) => value.callState),
+      onCallStateChanged,
+    );
 
     if (isWSConnected == false) {
       return const Scaffold(
