@@ -168,6 +168,24 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       showToast('Call ended');
     }
 
+    void wsOnOpponendDisconnected(_) async {
+      final chat = ref.read(chatProvider.notifier);
+
+      PeerConnection().dispose();
+      disposeStream(chat.state.localStream);
+      disposeStream(chat.state.remoteStream);
+
+      chat.state = chat.state.copyWith(
+        localStream: null,
+        remoteStream: null,
+        remoteId: null,
+        callState: CallState.idle,
+        remoteDescription: null,
+      );
+
+      showToast('Opponent disconnected');
+    }
+
     void wsOnIceCandidate(data) async {
       final chat = ref.read(chatProvider.notifier);
 
@@ -288,6 +306,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     useEventSubscription("incoming-time-out", wsOnIncomingTimeout);
     useEventSubscription("ice-candidate", wsOnIceCandidate);
     useEventSubscription("call-disconnected", wsOnCallDisconnected);
+    useEventSubscription("opponent-disconnected", wsOnOpponendDisconnected);
 
     useEffect(() {
       PeerConnection().onConnectionState(pcOnConnectionState);
