@@ -164,6 +164,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         callState: CallState.idle,
         remoteDescription: null,
       );
+
+      showToast('Call ended');
     }
 
     void wsOnIceCandidate(data) async {
