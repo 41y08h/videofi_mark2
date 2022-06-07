@@ -45,6 +45,14 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       active: incomingAudio.isPlaying,
     );
 
+    void showToast(String message) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+        ),
+      );
+    }
+
     void wsOnConnect(_) {
       final socket = SocketConnection().socket;
       socket.emit("get-id");
@@ -88,11 +96,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         remoteDescription: null,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Missed call'),
-        ),
-      );
+      showToast('Missed call');
     }
 
     void wsOnOfferRejected(data) async {
@@ -106,6 +110,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         remoteId: null,
         localStream: null,
       );
+
+      showToast('Rejected');
     }
 
     void wsOnAnswer(data) async {
@@ -128,6 +134,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         callState: CallState.idle,
         localStream: null,
       );
+
+      showToast('Call timed out');
     }
 
     void wsOnIncomingTimeout(data) async {
@@ -138,6 +146,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       chat.state = chat.state.copyWith(
         callState: CallState.idle,
       );
+
+      showToast('Call timed out');
     }
 
     void wsOnCallDisconnected(_) async {
@@ -189,9 +199,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
           pc.addTrack(element, localStream);
         });
       } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Camera permission denied"),
-        ));
+        showToast("Camera permission denied");
 
         return;
       }
@@ -213,9 +221,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
           isTryingToCall.value = false;
 
           final errorMessage = data['error']['message'];
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(errorMessage),
-          ));
+          showToast(errorMessage);
 
           PeerConnection().dispose();
           disposeStream(chat.state.localStream);
