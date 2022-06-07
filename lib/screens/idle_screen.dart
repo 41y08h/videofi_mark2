@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:videofi_mark2/constants.dart';
 import 'package:videofi_mark2/hooks/use_event_stream.dart';
 import 'package:videofi_mark2/hooks/use_event_subscription.dart';
 import 'package:videofi_mark2/hooks/use_ringtone_audio.dart';
@@ -31,7 +32,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     final isWSConnected = useState(false);
 
     final outgoingAudio = useRingtoneAudio(
-      () async => assetToAudioSource("assets/dial-tone.mp3"),
+      () async => assetToAudioSource(kOutgoingRingAssetPath),
       volume: 0.1,
     );
     final incomingAudio = useRingtoneAudio(() async {
@@ -314,98 +315,100 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     }
 
     return Scaffold(
-      body: Stack(
-        children: [
-          if (isCallInProgress)
-            Positioned(
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(context, CallScreen.routeName);
-                },
-                child: Container(
-                  height: 50,
-                  width: MediaQuery.of(context).size.width,
-                  color: Colors.green,
-                  child: const Center(
-                    child: Text(
-                      "Tap to view call",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // A green dot
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: const BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Your ID",
+      body: SafeArea(
+        child: Stack(
+          children: [
+            if (isCallInProgress)
+              Positioned(
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, CallScreen.routeName);
+                  },
+                  child: Container(
+                    height: 50,
+                    width: MediaQuery.of(context).size.width,
+                    color: Colors.green,
+                    child: const Center(
+                      child: Text(
+                        "Tap to view call",
                         style: TextStyle(
-                          fontSize: 20,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(
-                        localId,
-                        style: const TextStyle(
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: 160,
-                height: 50,
-                child: TextField(
-                  keyboardType: TextInputType.number,
-                  controller: remoteIdController,
-                  onChanged: (_) {
-                    // To update the state of the button
-                    setState(() {});
-                  },
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Remote ID',
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: 160,
-                child: ElevatedButton(
-                  child: Text(isTryingToCall.value ? '...' : 'Call'),
-                  onPressed:
-                      remoteIdController.text.isEmpty || isTryingToCall.value
-                          ? null
-                          : onCallPressed,
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // A green dot
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Your ID",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          localId,
+                          style: const TextStyle(
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: 160,
+                  height: 50,
+                  child: TextField(
+                    keyboardType: TextInputType.number,
+                    controller: remoteIdController,
+                    onChanged: (_) {
+                      // To update the state of the button
+                      setState(() {});
+                    },
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Remote ID',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: 160,
+                  child: ElevatedButton(
+                    child: Text(isTryingToCall.value ? '...' : 'Call'),
+                    onPressed:
+                        remoteIdController.text.isEmpty || isTryingToCall.value
+                            ? null
+                            : onCallPressed,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
