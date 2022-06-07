@@ -1,18 +1,18 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:videofi_mark2/constants.dart';
+import 'package:videofi_mark2/hooks/use_event_stream.dart';
 import 'package:videofi_mark2/hooks/use_event_subscription.dart';
+import 'package:videofi_mark2/hooks/use_ringtone_audio.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/providers/chat.dart';
 import 'package:videofi_mark2/screens/call_screen.dart';
 import 'package:videofi_mark2/socket.dart';
 import 'package:videofi_mark2/utils/dispose_stream.dart';
 import 'package:flutter_android_volume_keydown/flutter_android_volume_keydown.dart';
+import 'package:videofi_mark2/utils/audio.dart';
 
 class IdleScreen extends StatefulHookConsumerWidget {
   const IdleScreen({
@@ -24,282 +24,249 @@ class IdleScreen extends StatefulHookConsumerWidget {
 }
 
 class _IdleScreenState extends ConsumerState<IdleScreen> {
-  TextEditingController remoteIdController = TextEditingController();
-  bool isTryingToCall = false;
-  bool isWSConnected = false;
-  final outgoingAudio = AudioPlayer();
-  final incomingAudio = AudioPlayer();
-  StreamSubscription<HardwareButton>? volumeButtonSubscription;
+  @override
+  Widget build(BuildContext context) {
+    final remoteIdController = useTextEditingController();
+    final isTryingToCall = useState(false);
+    final isWSConnected = useState(false);
 
-  void wsOnConnect(_) {
-    final socket = SocketConnection().socket;
-    socket.emit("get-id");
-  }
+    final outgoingAudio = useRingtoneAudio(
+      () async => assetToAudioSource("assets/dial-tone.mp3"),
+      volume: 0.1,
+    );
+    final incomingAudio = useRingtoneAudio(() async {
+      return AudioSource.uri(Uri.parse(await getDefaultRingtoneUri()));
+    });
 
-  void wsOnIdCallback(dynamic id) {
-    setState(() {
+    useEventStream(
+      FlutterAndroidVolumeKeydown.stream,
+      onEvent: (_) => incomingAudio.stop(),
+      active: incomingAudio.isPlaying,
+    );
+
+    void wsOnConnect(_) {
+      final socket = SocketConnection().socket;
+      socket.emit("get-id");
+    }
+
+    void wsOnIdCallback(dynamic id) {
       final chat = ref.read(chatProvider.notifier);
       chat.state = chat.state.copyWith(
         localId: id,
       );
-      isWSConnected = true;
-    });
-  }
+      isWSConnected.value = true;
+    }
 
-  void wsOnDisconnect(_) {
-    setState(() {
-      isWSConnected = false;
-    });
-  }
+    void wsOnDisconnect(_) {
+      isWSConnected.value = false;
+    }
 
-  void wsOnOffer(data) async {
-    final chat = ref.read(chatProvider.notifier);
-    final signal = data['signal'];
-    chat.state = chat.state.copyWith(
-      remoteDescription: RTCSessionDescription(
+    void wsOnOffer(data) async {
+      final chat = ref.read(chatProvider.notifier);
+      final signal = data['signal'];
+      chat.state = chat.state.copyWith(
+        remoteDescription: RTCSessionDescription(
+          signal['sdp'],
+          signal['type'],
+        ),
+        remoteId: data['remoteId'],
+        callState: CallState.incoming,
+      );
+
+      Navigator.pushNamed(context, CallScreen.routeName);
+    }
+
+    void wsOnOfferEnded(data) async {
+      final chat = ref.read(chatProvider.notifier);
+
+      PeerConnection().dispose();
+
+      chat.state = chat.state.copyWith(
+        callState: CallState.idle,
+        remoteId: null,
+        remoteDescription: null,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Missed call'),
+        ),
+      );
+    }
+
+    void wsOnOfferRejected(data) async {
+      final chat = ref.read(chatProvider.notifier);
+
+      PeerConnection().dispose();
+      disposeStream(chat.state.localStream);
+
+      chat.state = chat.state.copyWith(
+        callState: CallState.idle,
+        remoteId: null,
+        localStream: null,
+      );
+    }
+
+    void wsOnAnswer(data) async {
+      final signal = data['signal'];
+      final answer = RTCSessionDescription(
         signal['sdp'],
         signal['type'],
-      ),
-      remoteId: data['remoteId'],
-      callState: CallState.incoming,
-    );
-
-    Navigator.pushNamed(context, CallScreen.routeName);
-  }
-
-  void wsOnOfferEnded(data) async {
-    final chat = ref.read(chatProvider.notifier);
-
-    PeerConnection().dispose();
-
-    chat.state = chat.state.copyWith(
-      callState: CallState.idle,
-      remoteId: null,
-      remoteDescription: null,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Missed call'),
-      ),
-    );
-  }
-
-  void wsOnOfferRejected(data) async {
-    final chat = ref.read(chatProvider.notifier);
-
-    PeerConnection().dispose();
-    disposeStream(chat.state.localStream);
-
-    chat.state = chat.state.copyWith(
-      callState: CallState.idle,
-      remoteId: null,
-      localStream: null,
-    );
-  }
-
-  void wsOnAnswer(data) async {
-    final signal = data['signal'];
-    final answer = RTCSessionDescription(
-      signal['sdp'],
-      signal['type'],
-    );
-    final pc = await PeerConnection().pc;
-    await pc.setRemoteDescription(answer);
-  }
-
-  void wsOnOutgoingTimeout(data) async {
-    final chat = ref.read(chatProvider.notifier);
-
-    PeerConnection().dispose();
-    disposeStream(chat.state.localStream);
-
-    chat.state = chat.state.copyWith(
-      callState: CallState.idle,
-      localStream: null,
-    );
-  }
-
-  void wsOnIncomingTimeout(data) async {
-    final chat = ref.read(chatProvider.notifier);
-
-    PeerConnection().dispose();
-
-    chat.state = chat.state.copyWith(
-      callState: CallState.idle,
-    );
-  }
-
-  void wsOnCallDisconnected(_) async {
-    final chat = ref.read(chatProvider.notifier);
-
-    PeerConnection().dispose();
-    disposeStream(chat.state.localStream);
-    disposeStream(chat.state.remoteStream);
-
-    chat.state = chat.state.copyWith(
-      localStream: null,
-      remoteStream: null,
-      remoteId: null,
-      callState: CallState.idle,
-      remoteDescription: null,
-    );
-  }
-
-  void wsOnIceCandidate(data) async {
-    final chat = ref.read(chatProvider.notifier);
-
-    final signal = data['candidate'];
-    final candidate = RTCIceCandidate(
-      signal['candidate'],
-      signal['sdpMid'],
-      signal['sdpMLineIndex'],
-    );
-    chat.state = chat.state.copyWith(
-      remoteCandidates: [...chat.state.remoteCandidates, candidate],
-    );
-  }
-
-  void onCallPressed() async {
-    setState(() {
-      isTryingToCall = true;
-    });
-
-    final chat = ref.read(chatProvider.notifier);
-    final socket = SocketConnection().socket;
-    final pc = await PeerConnection().pc;
-    final remoteId = int.tryParse(remoteIdController.text);
-
-    try {
-      final localStream = await navigator.mediaDevices.getUserMedia({
-        'audio': true,
-        'video': true,
-      });
-
-      chat.state = chat.state.copyWith(localStream: localStream);
-      localStream.getTracks().forEach((element) {
-        pc.addTrack(element, localStream);
-      });
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Camera permission denied"),
-      ));
-
-      return;
+      );
+      final pc = await PeerConnection().pc;
+      await pc.setRemoteDescription(answer);
     }
 
-    final offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
+    void wsOnOutgoingTimeout(data) async {
+      final chat = ref.read(chatProvider.notifier);
 
-    socket.emitWithAck('offer', {
-      'remoteId': remoteId,
-      'signal': offer.toMap(),
-    }, ack: (data) async {
-      if (data['error'] == null) {
-        chat.state = chat.state.copyWith(
-          callState: CallState.outgoing,
-          remoteId: remoteId,
-        );
-        Navigator.pushNamed(context, CallScreen.routeName);
-        setState(() {
-          isTryingToCall = false;
+      PeerConnection().dispose();
+      disposeStream(chat.state.localStream);
+
+      chat.state = chat.state.copyWith(
+        callState: CallState.idle,
+        localStream: null,
+      );
+    }
+
+    void wsOnIncomingTimeout(data) async {
+      final chat = ref.read(chatProvider.notifier);
+
+      PeerConnection().dispose();
+
+      chat.state = chat.state.copyWith(
+        callState: CallState.idle,
+      );
+    }
+
+    void wsOnCallDisconnected(_) async {
+      final chat = ref.read(chatProvider.notifier);
+
+      PeerConnection().dispose();
+      disposeStream(chat.state.localStream);
+      disposeStream(chat.state.remoteStream);
+
+      chat.state = chat.state.copyWith(
+        localStream: null,
+        remoteStream: null,
+        remoteId: null,
+        callState: CallState.idle,
+        remoteDescription: null,
+      );
+    }
+
+    void wsOnIceCandidate(data) async {
+      final chat = ref.read(chatProvider.notifier);
+
+      final signal = data['candidate'];
+      final candidate = RTCIceCandidate(
+        signal['candidate'],
+        signal['sdpMid'],
+        signal['sdpMLineIndex'],
+      );
+      chat.state = chat.state.copyWith(
+        remoteCandidates: [...chat.state.remoteCandidates, candidate],
+      );
+    }
+
+    void onCallPressed() async {
+      isTryingToCall.value = true;
+
+      final chat = ref.read(chatProvider.notifier);
+      final socket = SocketConnection().socket;
+      final pc = await PeerConnection().pc;
+      final remoteId = int.tryParse(remoteIdController.text);
+
+      try {
+        final localStream = await navigator.mediaDevices.getUserMedia({
+          'audio': true,
+          'video': true,
         });
-      } else {
-        setState(() {
-          isTryingToCall = false;
+
+        chat.state = chat.state.copyWith(localStream: localStream);
+        localStream.getTracks().forEach((element) {
+          pc.addTrack(element, localStream);
         });
-        final errorMessage = data['error']['message'];
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(errorMessage),
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Camera permission denied"),
         ));
 
-        PeerConnection().dispose();
-        disposeStream(chat.state.localStream);
-
-        chat.state = chat.state.copyWith(
-          localStream: null,
-          callState: CallState.idle,
-        );
+        return;
       }
-    });
-  }
+      final offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
 
-  void pcOnIceCandidate(RTCIceCandidate candidate) {
-    final socket = SocketConnection().socket;
-    socket.emit("ice-candidate", {
-      'candidate': candidate.toMap(),
-    });
-  }
+      socket.emitWithAck('offer', {
+        'remoteId': remoteId,
+        'signal': offer.toMap(),
+      }, ack: (data) async {
+        if (data['error'] == null) {
+          chat.state = chat.state.copyWith(
+            callState: CallState.outgoing,
+            remoteId: remoteId,
+          );
+          Navigator.pushNamed(context, CallScreen.routeName);
+          isTryingToCall.value = false;
+        } else {
+          isTryingToCall.value = false;
 
-  void pcOnTrack(event) {
-    final chat = ref.read(chatProvider.notifier);
+          final errorMessage = data['error']['message'];
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(errorMessage),
+          ));
 
-    if (event.track.kind != 'video') return;
-    chat.state = chat.state.copyWith(
-      remoteStream: event.streams.first,
-      callState: CallState.connected,
-    );
-  }
+          PeerConnection().dispose();
+          disposeStream(chat.state.localStream);
 
-  void pcOnConnectionState(RTCPeerConnectionState state) {
-    final chat = ref.read(chatProvider.notifier);
-
-    if (state != RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
-      return;
+          chat.state = chat.state.copyWith(
+            localStream: null,
+            callState: CallState.idle,
+          );
+        }
+      });
     }
 
-    chat.state = chat.state.copyWith(
-      callState: CallState.connected,
-    );
-  }
-
-  Future<void> playOutgoingRingtone() async {
-    final player = outgoingAudio;
-
-    await player.setAsset('assets/dial-ring.mp3');
-    await player.setLoopMode(LoopMode.all);
-    await player.setVolume(0.1);
-    await player.setAndroidAudioAttributes(kRingtoneAndroidAudioAttributes);
-    await player.play();
-  }
-
-  Future<String> getDefaultRingtoneUri() async {
-    const channel = MethodChannel('videofi_common_channel');
-    final String ringtone = await channel.invokeMethod('getDefaultRingtoneUri');
-    return ringtone;
-  }
-
-  Future<void> playIncomingRingtone() async {
-    // Silent when volume buttons are pressed
-    volumeButtonSubscription = FlutterAndroidVolumeKeydown.stream
-        .listen((event) => incomingAudio.stop());
-
-    // Get the default ringtone in android
-    var uri = Uri.parse(await getDefaultRingtoneUri());
-    final ringtone = AudioSource.uri(uri);
-
-    final player = incomingAudio;
-    await player.setAudioSource(ringtone);
-    await player.setLoopMode(LoopMode.all);
-    await player.setVolume(1);
-    await player.setAndroidAudioAttributes(kRingtoneAndroidAudioAttributes);
-    await player.play();
-  }
-
-  void onCallStateChanged(CallState? previous, CallState current) {
-    if (current == CallState.outgoing) {
-      playOutgoingRingtone();
-    } else if (current == CallState.incoming) {
-      playIncomingRingtone();
-    } else {
-      outgoingAudio.stop();
-      incomingAudio.stop();
-      volumeButtonSubscription?.cancel();
+    void pcOnIceCandidate(RTCIceCandidate candidate) {
+      final socket = SocketConnection().socket;
+      socket.emit("ice-candidate", {
+        'candidate': candidate.toMap(),
+      });
     }
-  }
 
-  @override
-  Widget build(BuildContext context) {
+    void pcOnTrack(event) {
+      final chat = ref.read(chatProvider.notifier);
+
+      if (event.track.kind != 'video') return;
+      chat.state = chat.state.copyWith(
+        remoteStream: event.streams.first,
+        callState: CallState.connected,
+      );
+    }
+
+    void pcOnConnectionState(RTCPeerConnectionState state) {
+      final chat = ref.read(chatProvider.notifier);
+
+      if (state != RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        return;
+      }
+
+      chat.state = chat.state.copyWith(
+        callState: CallState.connected,
+      );
+    }
+
+    void onCallStateChanged(CallState? previous, CallState current) {
+      if (current == CallState.outgoing) {
+        outgoingAudio.play();
+      } else if (current == CallState.incoming) {
+        incomingAudio.play();
+      } else {
+        outgoingAudio.stop();
+        incomingAudio.stop();
+      }
+    }
+
     useEventSubscription('connect', wsOnConnect);
     useEventSubscription('get-id/callback', wsOnIdCallback);
     useEventSubscription("disconnect", wsOnDisconnect);
@@ -324,8 +291,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
         disposeStream(chat.remoteStream);
         SocketConnection().socket.dispose();
         PeerConnection().dispose();
-        outgoingAudio.dispose();
-        volumeButtonSubscription?.cancel();
       };
     }, []);
 
@@ -340,7 +305,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       onCallStateChanged,
     );
 
-    if (isWSConnected == false) {
+    if (isWSConnected.value == false) {
       return const Scaffold(
         body: Center(
           child: Text("Connecting..."),
@@ -431,10 +396,11 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
               SizedBox(
                 width: 160,
                 child: ElevatedButton(
-                  child: Text(isTryingToCall ? '...' : 'Call'),
-                  onPressed: remoteIdController.text.isEmpty || isTryingToCall
-                      ? null
-                      : onCallPressed,
+                  child: Text(isTryingToCall.value ? '...' : 'Call'),
+                  onPressed:
+                      remoteIdController.text.isEmpty || isTryingToCall.value
+                          ? null
+                          : onCallPressed,
                 ),
               ),
             ],
