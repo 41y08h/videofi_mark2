@@ -1,13 +1,20 @@
+import 'dart:async';
+
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:perfect_volume_control/perfect_volume_control.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/providers/chat.dart';
 import 'package:videofi_mark2/screens/call_screen.dart';
 import 'package:videofi_mark2/socket.dart';
 import 'package:videofi_mark2/utils/dispose_stream.dart';
+import 'package:videofi_mark2/utils/ringtone_manager.dart';
+import 'package:flutter_android_volume_keydown/flutter_android_volume_keydown.dart';
 
 class IdleScreen extends ConsumerStatefulWidget {
   const IdleScreen({
@@ -23,6 +30,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
   bool isTryingToCall = false;
   bool isWSConnected = false;
   final outgoingAudio = AudioPlayer();
+  final incomingAudio = AudioPlayer();
+  StreamSubscription<HardwareButton>? volumeButtonSubscription;
 
   @override
   void initState() {
@@ -43,7 +52,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     socket.on("answer", wsOnAnswer);
     socket.on("outgoing-time-out", wsOnOutgoingTimeout);
     socket.on("incoming-time-out", wsOnIncomingTimeout);
-    socket.on("ice-candidate", wsOnIceCandidate);
+    // socket.on("ice-candidate", wsOnIceCandidate);
     socket.on("call-disconnected", wsOnCallDisconnected);
 
     PeerConnection().onConnectionState(pcOnConnectionState);
@@ -60,6 +69,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     SocketConnection().socket.dispose();
     PeerConnection().dispose();
     outgoingAudio.dispose();
+    volumeButtonSubscription?.cancel();
   }
 
   void wsOnConnect(_) {
@@ -302,8 +312,19 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
           ),
         );
         await outgoingAudio.play();
+      } else if (current == CallState.incoming) {
+        volumeButtonSubscription = FlutterAndroidVolumeKeydown.stream
+            .listen((event) => incomingAudio.stop());
+        final ringtoneUri = await RingtoneManager.getDefaultRingtoneUri();
+        await incomingAudio
+            .setAudioSource(AudioSource.uri(Uri.parse(ringtoneUri)));
+        await incomingAudio.setLoopMode(LoopMode.all);
+        await incomingAudio.setVolume(1);
+        await incomingAudio.play();
       } else {
-        await outgoingAudio.stop();
+        outgoingAudio.stop();
+        incomingAudio.stop();
+        volumeButtonSubscription?.cancel();
       }
     });
 
