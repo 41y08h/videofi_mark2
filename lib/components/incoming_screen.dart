@@ -52,6 +52,10 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
       chat.state.remoteDescription as RTCSessionDescription,
     );
 
+    for (var candidate in chat.state.remoteCandidates) {
+      await pc.addCandidate(candidate);
+    }
+
     final answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 

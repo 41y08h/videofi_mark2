@@ -16,6 +16,7 @@ class Chat {
   CallState callState = CallState.idle;
 
   RTCSessionDescription? remoteDescription;
+  List<RTCIceCandidate> remoteCandidates = [];
 
   Chat({
     this.localId,
@@ -24,6 +25,7 @@ class Chat {
     this.remoteStream,
     this.callState = CallState.idle,
     this.remoteDescription,
+    this.remoteCandidates = const [],
   });
 
   Chat copyWith({
@@ -33,6 +35,7 @@ class Chat {
     MediaStream? remoteStream,
     CallState? callState,
     RTCSessionDescription? remoteDescription,
+    List<RTCIceCandidate>? remoteCandidates,
   }) {
     return Chat(
       localId: localId ?? this.localId,
@@ -41,6 +44,7 @@ class Chat {
       remoteStream: remoteStream ?? this.remoteStream,
       callState: callState ?? this.callState,
       remoteDescription: remoteDescription ?? this.remoteDescription,
+      remoteCandidates: remoteCandidates ?? this.remoteCandidates,
     );
   }
 }

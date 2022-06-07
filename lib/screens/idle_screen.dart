@@ -52,7 +52,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     socket.on("answer", wsOnAnswer);
     socket.on("outgoing-time-out", wsOnOutgoingTimeout);
     socket.on("incoming-time-out", wsOnIncomingTimeout);
-    // socket.on("ice-candidate", wsOnIceCandidate);
+    socket.on("ice-candidate", wsOnIceCandidate);
     socket.on("call-disconnected", wsOnCallDisconnected);
 
     PeerConnection().onConnectionState(pcOnConnectionState);
@@ -188,7 +188,7 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
   }
 
   void wsOnIceCandidate(data) async {
-    final pc = await PeerConnection().pc;
+    final chat = ref.read(chatProvider.notifier);
 
     final signal = data['candidate'];
     final candidate = RTCIceCandidate(
@@ -196,7 +196,9 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       signal['sdpMid'],
       signal['sdpMLineIndex'],
     );
-    await pc.addCandidate(candidate).catchError((e) {/* ignore */});
+    chat.state = chat.state.copyWith(
+      remoteCandidates: [...chat.state.remoteCandidates, candidate],
+    );
   }
 
   void onCallPressed() async {
