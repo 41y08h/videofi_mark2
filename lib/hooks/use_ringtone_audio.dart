@@ -32,7 +32,7 @@ RingtoneAudio useRingtoneAudio(
   }
 
   Future<void> stop() async {
-    await player.value.stop();
+    await player.value.pause();
     isPlaying.value = false;
   }
 
