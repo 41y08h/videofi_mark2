@@ -1,11 +1,12 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:videofi_mark2/constants.dart';
+import 'package:videofi_mark2/hooks/use_event_subscription.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/providers/chat.dart';
 import 'package:videofi_mark2/screens/call_screen.dart';
@@ -13,7 +14,7 @@ import 'package:videofi_mark2/socket.dart';
 import 'package:videofi_mark2/utils/dispose_stream.dart';
 import 'package:flutter_android_volume_keydown/flutter_android_volume_keydown.dart';
 
-class IdleScreen extends ConsumerStatefulWidget {
+class IdleScreen extends StatefulHookConsumerWidget {
   const IdleScreen({
     Key? key,
   }) : super(key: key);
@@ -29,45 +30,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
   final outgoingAudio = AudioPlayer();
   final incomingAudio = AudioPlayer();
   StreamSubscription<HardwareButton>? volumeButtonSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    initialize();
-  }
-
-  void initialize() async {
-    final socket = SocketConnection().socket;
-
-    socket.on('connect', wsOnConnect);
-    socket.on('get-id/callback', wsOnIdCallback);
-    socket.on("disconnect", wsOnDisconnect);
-
-    socket.on("offer", wsOnOffer);
-    socket.on("offer-ended", wsOnOfferEnded);
-    socket.on("offer-rejected", wsOnOfferRejected);
-    socket.on("answer", wsOnAnswer);
-    socket.on("outgoing-time-out", wsOnOutgoingTimeout);
-    socket.on("incoming-time-out", wsOnIncomingTimeout);
-    socket.on("ice-candidate", wsOnIceCandidate);
-    socket.on("call-disconnected", wsOnCallDisconnected);
-
-    PeerConnection().onConnectionState(pcOnConnectionState);
-    PeerConnection().onIceCandidate(pcOnIceCandidate);
-    PeerConnection().onTrack(pcOnTrack);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    final chat = ref.read(chatProvider);
-    disposeStream(chat.localStream);
-    disposeStream(chat.remoteStream);
-    SocketConnection().socket.dispose();
-    PeerConnection().dispose();
-    outgoingAudio.dispose();
-    volumeButtonSubscription?.cancel();
-  }
 
   void wsOnConnect(_) {
     final socket = SocketConnection().socket;
@@ -338,6 +300,35 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    useEventSubscription('connect', wsOnConnect);
+    useEventSubscription('get-id/callback', wsOnIdCallback);
+    useEventSubscription("disconnect", wsOnDisconnect);
+
+    useEventSubscription("offer", wsOnOffer);
+    useEventSubscription("offer-ended", wsOnOfferEnded);
+    useEventSubscription("offer-rejected", wsOnOfferRejected);
+    useEventSubscription("answer", wsOnAnswer);
+    useEventSubscription("outgoing-time-out", wsOnOutgoingTimeout);
+    useEventSubscription("incoming-time-out", wsOnIncomingTimeout);
+    useEventSubscription("ice-candidate", wsOnIceCandidate);
+    useEventSubscription("call-disconnected", wsOnCallDisconnected);
+
+    useEffect(() {
+      PeerConnection().onConnectionState(pcOnConnectionState);
+      PeerConnection().onIceCandidate(pcOnIceCandidate);
+      PeerConnection().onTrack(pcOnTrack);
+
+      return () {
+        final chat = ref.read(chatProvider);
+        disposeStream(chat.localStream);
+        disposeStream(chat.remoteStream);
+        SocketConnection().socket.dispose();
+        PeerConnection().dispose();
+        outgoingAudio.dispose();
+        volumeButtonSubscription?.cancel();
+      };
+    }, []);
+
     final localId = ref.watch(
       chatProvider.select((value) => value.localId.toString()),
     );
