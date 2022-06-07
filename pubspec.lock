@@ -9,7 +9,7 @@ packages:
     source: hosted
     version: "2.8.2"
   audio_session:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: audio_session
       url: "https://pub.dartlang.org"
@@ -275,13 +275,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.0.5"
-  perfect_volume_control:
-    dependency: "direct main"
-    description:
-      name: perfect_volume_control
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "1.0.5"
   platform:
     dependency: transitive
     description:
