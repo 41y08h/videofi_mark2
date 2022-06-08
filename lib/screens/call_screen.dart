@@ -19,18 +19,22 @@ class _CallScreenState extends ConsumerState<CallScreen> {
     final callState =
         ref.watch(chatProvider.select((state) => state.callState));
 
-    return Scaffold(body: Builder(builder: (context) {
-      switch (callState) {
-        case CallState.outgoing:
-          return const OutgoingScreen();
-        case CallState.incoming:
-          return const IncomingScreen();
-        case CallState.connected:
-          return const ConnectedScreen();
-        default:
-          Future.microtask(() => Navigator.pop(context));
-          return const SizedBox();
-      }
-    }));
+    return Scaffold(
+      body: SafeArea(
+        child: Builder(builder: (context) {
+          switch (callState) {
+            case CallState.outgoing:
+              return const OutgoingScreen();
+            case CallState.incoming:
+              return const IncomingScreen();
+            case CallState.connected:
+              return const ConnectedScreen();
+            default:
+              Future.microtask(() => Navigator.pop(context));
+              return const SizedBox();
+          }
+        }),
+      ),
+    );
   }
 }

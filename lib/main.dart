@@ -18,6 +18,7 @@ main() async {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xff300a24),
       ),
+      debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
         '/': (context) => const IdleScreen(),

@@ -6,6 +6,28 @@ import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/socket.dart';
 import 'package:videofi_mark2/utils/dispose_stream.dart';
 
+class CallActionButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final IconData icon;
+  const CallActionButton({Key? key, this.onPressed, required this.icon})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: Container(
+        color: Colors.red,
+        child: IconButton(
+          color: Colors.white,
+          onPressed: onPressed,
+          icon: Icon(icon),
+          splashColor: Colors.blue,
+        ),
+      ),
+    );
+  }
+}
+
 class ConnectedScreen extends ConsumerStatefulWidget {
   const ConnectedScreen({Key? key}) : super(key: key);
 
@@ -64,25 +86,52 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
+        RTCVideoView(remoteRenderer),
         Positioned(
-          top: 0,
-          right: 0,
+          top: 20,
+          right: 20,
           child: SizedBox(
             width: 90,
             height: 160,
             child: RTCVideoView(localRenderer),
           ),
         ),
-        RTCVideoView(remoteRenderer),
-        Positioned(
+        Positioned.fill(
           bottom: 0,
           right: 0,
-          child: SizedBox(
-            width: 90,
-            height: 90,
-            child: IconButton(
-              onPressed: disconnectCall,
-              icon: const Icon(Icons.call_end),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(10),
+                ),
+                color: Color(0xff300a24),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ClipOval(
+                    child: Material(
+                      color: Colors.red,
+                      child: SizedBox(
+                        height: 60,
+                        width: 60,
+                        child: IconButton(
+                          color: Colors.white,
+                          onPressed: disconnectCall,
+                          icon: const Icon(Icons.call_end),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
