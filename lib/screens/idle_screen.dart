@@ -270,7 +270,6 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       if (event.track.kind != 'video') return;
       chat.state = chat.state.copyWith(
         remoteStream: event.streams.first,
-        callState: CallState.connected,
       );
     }
 

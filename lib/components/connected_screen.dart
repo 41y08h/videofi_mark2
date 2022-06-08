@@ -9,19 +9,28 @@ import 'package:videofi_mark2/utils/dispose_stream.dart';
 class CallActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData icon;
-  const CallActionButton({Key? key, this.onPressed, required this.icon})
+  final Color color;
+  const CallActionButton(
+      {Key? key,
+      this.onPressed,
+      required this.icon,
+      this.color = Colors.transparent})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    const double size = 52;
     return ClipOval(
-      child: Container(
-        color: Colors.red,
-        child: IconButton(
-          color: Colors.white,
-          onPressed: onPressed,
-          icon: Icon(icon),
-          splashColor: Colors.blue,
+      child: Material(
+        color: color,
+        child: SizedBox(
+          height: size,
+          width: size,
+          child: IconButton(
+            color: color.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+            onPressed: onPressed,
+            icon: Icon(icon),
+          ),
         ),
       ),
     );
@@ -38,6 +47,7 @@ class ConnectedScreen extends ConsumerStatefulWidget {
 class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
   RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
   RTCVideoRenderer localRenderer = RTCVideoRenderer();
+  bool isMute = false;
 
   @override
   void initState() {
@@ -82,6 +92,19 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
     );
   }
 
+  void switchCamera() {
+    final chat = ref.read(chatProvider);
+    Helper.switchCamera(chat.localStream!.getVideoTracks().first);
+  }
+
+  void toggleMute() {
+    final chat = ref.read(chatProvider);
+    Helper.setMicrophoneMute(!isMute, chat.localStream!.getAudioTracks().first);
+    setState(() {
+      isMute = !isMute;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -107,28 +130,30 @@ class _ConnectedScreenState extends ConsumerState<ConnectedScreen> {
                   topLeft: Radius.circular(10),
                   topRight: Radius.circular(10),
                 ),
-                color: Color(0xff300a24),
+                color: Color(0xff541c42),
               ),
               padding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 16,
+                vertical: 20,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ClipOval(
-                    child: Material(
-                      color: Colors.red,
-                      child: SizedBox(
-                        height: 60,
-                        width: 60,
-                        child: IconButton(
-                          color: Colors.white,
-                          onPressed: disconnectCall,
-                          icon: const Icon(Icons.call_end),
-                        ),
-                      ),
-                    ),
+                  CallActionButton(
+                    icon: Icons.cameraswitch,
+                    onPressed: switchCamera,
+                  ),
+                  const SizedBox(width: 20),
+                  CallActionButton(
+                    color: isMute ? Colors.white : Colors.transparent,
+                    icon: Icons.mic_off,
+                    onPressed: toggleMute,
+                  ),
+                  const SizedBox(width: 20),
+                  CallActionButton(
+                    color: Colors.red,
+                    icon: Icons.call_end,
+                    onPressed: disconnectCall,
                   ),
                 ],
               ),
