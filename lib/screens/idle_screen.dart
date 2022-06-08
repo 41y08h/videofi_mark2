@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -201,6 +202,8 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
     }
 
     void onCallPressed() async {
+      FocusManager.instance.primaryFocus?.unfocus();
+
       isTryingToCall.value = true;
 
       final chat = ref.read(chatProvider.notifier);
@@ -333,109 +336,125 @@ class _IdleScreenState extends ConsumerState<IdleScreen> {
       onCallStateChanged,
     );
 
-    if (isWSConnected.value == false) {
-      return const Scaffold(
+    if (!isWSConnected.value) {
+      return Scaffold(
         body: Center(
-          child: Text("Connecting..."),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(
+                Icons.signal_cellular_alt,
+                color: Colors.white,
+              ),
+              SizedBox(height: 12),
+              Text('Connecting...', style: TextStyle(color: Colors.white)),
+            ],
+          ),
         ),
       );
     }
 
     return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            if (isCallInProgress)
-              Positioned(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(context, CallScreen.routeName);
-                  },
-                  child: Container(
-                    height: 50,
-                    width: MediaQuery.of(context).size.width,
-                    color: Colors.green,
-                    child: const Center(
-                      child: Text(
-                        "Tap to view call",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          if (isCallInProgress)
+            Positioned(
+              top: 0,
+              left: 0,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, CallScreen.routeName);
+                },
+                child: Container(
+                  color: Colors.green,
+                  child: SafeArea(
+                    child: Container(
+                      height: 50,
+                      width: MediaQuery.of(context).size.width,
+                      color: Colors.green,
+                      child: const Center(
+                        child: Text(
+                          "Tap to view call",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // A green dot
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Your ID",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          localId,
-                          style: const TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    )
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: 160,
-                  height: 50,
-                  child: TextField(
-                    keyboardType: TextInputType.number,
-                    controller: remoteIdController,
-                    onChanged: (_) {
-                      // To update the state of the button
-                      setState(() {});
-                    },
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Remote ID',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: 160,
-                  child: ElevatedButton(
-                    child: Text(isTryingToCall.value ? '...' : 'Call'),
-                    onPressed:
-                        remoteIdController.text.isEmpty || isTryingToCall.value
-                            ? null
-                            : onCallPressed,
-                  ),
-                ),
-              ],
             ),
-          ],
-        ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // A green dot
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Your ID",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        localId,
+                        style: const TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 160,
+                height: 50,
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  controller: remoteIdController,
+                  onChanged: (_) {
+                    // To update the state of the button
+                    setState(() {});
+                  },
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Remote ID',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: 160,
+                child: ElevatedButton(
+                  child: Text(isTryingToCall.value ? '...' : 'Call'),
+                  onPressed: remoteIdController.text.isEmpty ||
+                          isTryingToCall.value ||
+                          isCallInProgress
+                      ? null
+                      : onCallPressed,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
