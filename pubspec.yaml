@@ -21,6 +21,8 @@ dependencies:
   flutter_android_volume_keydown: ^1.0.0
   flutter_hooks: ^0.18.3
   hooks_riverpod: ^1.0.3
+  swipebuttonflutter: ^1.0.0
+  simple_animations: ^4.0.2
 
 dev_dependencies:
   flutter_test:

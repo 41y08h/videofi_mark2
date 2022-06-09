@@ -50,5 +50,5 @@ class Chat {
 }
 
 final chatProvider = StateProvider<Chat>((ref) {
-  return Chat();
+  return Chat(remoteId: 545799, callState: CallState.incoming);
 });

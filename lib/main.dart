@@ -19,7 +19,7 @@ main() async {
         scaffoldBackgroundColor: const Color(0xff300a24),
       ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/',
+      initialRoute: CallScreen.routeName,
       routes: {
         '/': (context) => const IdleScreen(),
         CallScreen.routeName: (context) => const CallScreen(),
