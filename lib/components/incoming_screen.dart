@@ -140,7 +140,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               VerticalSwipeButton(
-                onPressed: () {},
+                onPressed: rejectIncomingCall,
                 child: ClipOval(
                   child: Container(
                     padding: const EdgeInsets.all(14),
@@ -153,9 +153,7 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
                 width: 24,
               ),
               VerticalSwipeButton(
-                onPressed: () {
-                  print("swiped");
-                },
+                onPressed: onAnswerPressed,
                 child: ClipOval(
                   child: Container(
                     padding: const EdgeInsets.all(14),
