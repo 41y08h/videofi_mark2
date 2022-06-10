@@ -14,7 +14,7 @@ main() async {
 
   runApp(ProviderScope(
     child: MaterialApp(
-      title: 'Videofi',
+      title: 'VideoFi',
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xff300a24),
       ),
