@@ -84,19 +84,26 @@ class _IncomingScreenState extends ConsumerState<IncomingScreen> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        Positioned(
-          top: 60,
-          child: ClipOval(
-            child: Container(
-              color: Colors.grey.shade800,
-              padding: const EdgeInsets.all(14),
-              child: Icon(
-                Icons.person_rounded,
-                size: 60,
-                color: Colors.grey.shade600,
+        PlayAnimation<double>(
+          tween: Tween(begin: -100, end: 60),
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOutBack,
+          builder: (context, child, value) {
+            return Positioned(
+              top: value,
+              child: ClipOval(
+                child: Container(
+                  color: Colors.grey.shade800,
+                  padding: const EdgeInsets.all(14),
+                  child: Icon(
+                    Icons.person_rounded,
+                    size: 60,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
         Positioned(
           top: 180,
