@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:simple_animations/stateless_animation/play_animation.dart';
 import 'package:videofi_mark2/pc.dart';
 import 'package:videofi_mark2/providers/chat.dart';
 import 'package:videofi_mark2/socket.dart';
@@ -29,50 +30,79 @@ class _OutgoingScreenState extends ConsumerState<OutgoingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final remoteId = ref.watch(chatProvider.select((value) => value.remoteId));
+    final remoteId =
+        ref.watch(chatProvider.select((value) => value.remoteId.toString()));
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.face,
-            size: 60,
-            color: Colors.green,
-          ),
-          const SizedBox(
-            height: 8,
-          ),
-          Text(
-            remoteId.toString(),
-            style: const TextStyle(
-              fontSize: 20,
-            ),
-          ),
-          const SizedBox(
-            height: 20,
-          ),
-          const Text(
-            'Calling',
-          ),
-          const SizedBox(
-            height: 4,
-          ),
-          const SizedBox(
-            height: 4,
-          ),
-          ClipOval(
-            child: Container(
-              color: Colors.red,
-              child: IconButton(
-                color: Colors.white,
-                onPressed: endOutgoingCall,
-                icon: const Icon(Icons.call_end),
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        PlayAnimation<double>(
+          tween: Tween(begin: -100, end: 60),
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOutBack,
+          builder: (context, child, value) {
+            return Positioned(
+              top: value,
+              child: ClipOval(
+                child: Container(
+                  color: Colors.grey.shade800,
+                  padding: const EdgeInsets.all(14),
+                  child: Icon(
+                    Icons.person_rounded,
+                    size: 60,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
               ),
+            );
+          },
+        ),
+        Positioned(
+          top: 180,
+          child: Column(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.black,
+                ),
+                child: Text(
+                  remoteId,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'CALLING',
+                style: TextStyle(
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          bottom: 40,
+          child: RawMaterialButton(
+            onPressed: endOutgoingCall,
+            fillColor: Colors.red,
+            shape: const CircleBorder(
+              side: BorderSide(),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: const Icon(
+              Icons.call_end,
+              size: 30,
+              color: Colors.white,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
